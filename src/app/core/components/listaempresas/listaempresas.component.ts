@@ -29,7 +29,8 @@ export class Listaempresas implements OnInit {
   loading: boolean = true;
   rows: number = 10;
   rowsPerPageOptions = [5, 10, 20];
-
+  expandedRowKeys: { [key: string]: boolean } = {};
+  
   submitted: boolean = false;
 
   saveConfirmDialog: boolean = false;

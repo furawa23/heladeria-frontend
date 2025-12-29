@@ -7,6 +7,7 @@ export interface EmpresaResponse {
     razonSocial: string;
     nombreDuenio: string;
     telefono: string;
+    sucursales?: SucursalResponse[];
 }
 
 export interface EmpresaRequest {
@@ -14,6 +15,20 @@ export interface EmpresaRequest {
     razonSocial: string;
     nombreDuenio: string;
     telefono: string;
+}
+
+export interface SucursalRequest {
+  nombre: string;
+  direccion: string;
+}
+
+export interface SucursalResponse {
+  id: number;
+  nombre: string;
+  direccion: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  deletedAt?: Date;
 }
 
 export interface Page<T> {

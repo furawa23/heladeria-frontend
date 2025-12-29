@@ -10,7 +10,10 @@
                 </ng-template>
             </p-toolbar>
 
-            <p-table #dt [value]="empresas" [lazy]="true" 
+            <p-table #dt [value]="empresas"
+            dataKey="id"
+            [lazy]="true"
+            expandableRows="true" 
             (onLazyLoad)="loadEmpresas($event)"
             [paginator]="true" 
             [rows]="rows" 
@@ -18,44 +21,83 @@
             [loading]="loading"
             [rowsPerPageOptions]="rowsPerPageOptions" responsiveLayout="scroll" [globalFilterFields]="['ruc','razonSocial','nombreDuenio','telefono']" [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" selectionMode="multiple" [rowHover]="true" dataKey="id">
 
-                <ng-template pTemplate="header">
-                    <tr>
-                        <th pSortableColumn="ruc">RUC <p-sortIcon field="ruc"></p-sortIcon></th>
-                        <th pSortableColumn="razonSocial">Razón Social <p-sortIcon field="razonSocial"></p-sortIcon></th>
-                        <th pSortableColumn="nombreDuenio">Nombre del Dueño <p-sortIcon field="nombreDuenio"></p-sortIcon></th>
-                        <th pSortableColumn="telefono">Teléfono <p-sortIcon field="telefono"></p-sortIcon></th>
-                        <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
-                        <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
-                        <th>Acciones</th>
-                    </tr>
-                </ng-template>
-
-                <ng-template pTemplate="body" let-empresa>
-                    <tr>
-                        <td style="width:14%; min-width:10rem;">{{empresa.ruc}}</td>
-                        <td style="width:14%; min-width:10rem;">{{empresa.razonSocial}}</td>
-                        <td style="width:14%; min-width:10rem;">{{empresa.nombreDuenio}}</td>
-                        <td style="width:14%; min-width:10rem;">{{empresa.telefono}}</td>
-                        <td style="width:14%; min-width:10rem;">{{empresa.createdAt | date:'short'}}</td>
-                        <td>
-                            <p-tag [severity]="!empresa.deletedAt ? 'success' : 'danger'" 
-                                   [value]="!empresa.deletedAt ? 'ACTIVA' : 'DESACTIVADA'"
-                                   [rounded]="true">
-                            </p-tag>
-                        </td>
-                        <td>
-                            <div class="flex">
-                                <ng-container *ngIf="!empresa.deletedAt">
-                                    <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editEmpresa(empresa)" pTooltip="Editar" tooltipPosition="top"></button>
-                                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteEmpresa(empresa)" pTooltip="Desactivar" tooltipPosition="top"></button>
-                                </ng-container>
-                                <ng-container *ngIf="empresa.deletedAt">
-                                    <button pButton pRipple icon="pi pi-refresh" class="p-button-rounded p-button-primary" (click)="restaurarEmpresa(empresa)" pTooltip="Activar / Restaurar" tooltipPosition="top"></button>
-                                </ng-container>
-                            </div>
-                        </td>
-                    </tr>
-                </ng-template>
+            <ng-template pTemplate="header">
+                <tr>
+                    <th style="width: 3rem"></th> 
+                    
+                    <th pSortableColumn="ruc">RUC <p-sortIcon field="ruc"></p-sortIcon></th>
+                    <th pSortableColumn="razonSocial">Razón Social <p-sortIcon field="razonSocial"></p-sortIcon></th>
+                    <th pSortableColumn="nombreDuenio">Nombre del Dueño <p-sortIcon field="nombreDuenio"></p-sortIcon></th>
+                    <th pSortableColumn="telefono">Teléfono <p-sortIcon field="telefono"></p-sortIcon></th>
+                    <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
+                    <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
+                    <th>Acciones</th>
+                </tr>
+            </ng-template>
+        
+            <ng-template pTemplate="body" let-empresa let-expanded="expanded">
+                <tr>
+                    <td>
+                        <button type="button" pButton pRipple [pRowToggler]="empresa" 
+                                class="p-button-text p-button-rounded p-button-plain" 
+                                [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
+                        </button>
+                    </td>
+        
+                    <td>{{empresa.ruc}}</td>
+                    <td>{{empresa.razonSocial}}</td>
+                    <td>{{empresa.nombreDuenio}}</td>
+                    <td>{{empresa.telefono}}</td>
+                    <td>{{empresa.createdAt | date:'short'}}</td>
+                    <td>
+                        <p-tag [severity]="!empresa.deletedAt ? 'success' : 'danger'" 
+                               [value]="!empresa.deletedAt ? 'ACTIVA' : 'DESACTIVADA'"
+                               [rounded]="true">
+                        </p-tag>
+                    </td>
+                    <td>
+                       <div class="flex">
+                            <ng-container *ngIf="!empresa.deletedAt">
+                                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editEmpresa(empresa)"></button>
+                                <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteEmpresa(empresa)"></button>
+                            </ng-container>
+                            <ng-container *ngIf="empresa.deletedAt">
+                                <button pButton pRipple icon="pi pi-refresh" class="p-button-rounded p-button-primary" (click)="restaurarEmpresa(empresa)"></button>
+                            </ng-container>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        
+            <ng-template #expandedrow let-empresa>
+                <tr>
+                    <td colspan="8">
+                        <div class="p-3">
+                            <span class="font-bold block mb-2">Sucursales de {{empresa.razonSocial}}</span>
+                            
+                            <p-table [value]="empresa.sucursales" dataKey="id">
+                                <ng-template pTemplate="header">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Dirección</th>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="body" let-sucursal>
+                                    <tr>
+                                        <td>{{sucursal.nombre}}</td>
+                                        <td>{{sucursal.direccion}}</td>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="emptymessage">
+                                    <tr>
+                                        <td colspan="2">No hay sucursales registradas.</td>
+                                    </tr>
+                                </ng-template>
+                            </p-table>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
             </p-table>
         </div>
 
