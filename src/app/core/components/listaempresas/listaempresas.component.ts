@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../shared/shared.module';
 import { EmpresaResponse, EmpresaRequest } from '../../../models/models.interface';
 import { MessageService } from 'primeng/api';
@@ -6,6 +6,7 @@ import { EmpresaService } from '../../../services/empresa.service';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { TableLazyLoadEvent } from 'primeng/table';
 
 @Component({
   selector: 'app-listaempresas',
@@ -24,21 +25,48 @@ export class Listaempresas implements OnInit {
 
   empresa!:EmpresaResponse;
 
-  empresas$!: Observable<EmpresaResponse[]>;
+  empresas: EmpresaResponse[] = [];
+
+  totalRecords: number = 0;
+  loading: boolean = true;
+  rows: number = 10;
+  rowsPerPageOptions = [5, 10, 20];
 
   submitted: boolean = false;
 
-  rowsPerPageOptions = [5, 10, 20];
-
-  constructor(private empresaService: EmpresaService, private messageService: MessageService) {}
+  constructor(private empresaService: EmpresaService, private messageService: MessageService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-      this.getEmpresas();
+    this.loadEmpresas({ first: 0, rows: 10 });
   }
 
-  getEmpresas(){
-    this.empresas$ = this.empresaService.listarTodas()
-    .pipe(map(page => page.content));  }
+  loadEmpresas(event: any) {
+    this.loading = true;
+
+    const first = event?.first ?? 0;
+    const rows = event?.rows ?? 10;
+    
+    const page = first / rows;
+    const size = rows;
+
+    this.empresaService.listarTodas(page, size).subscribe({
+      next: (data) => {
+        this.empresas = data.content;
+        this.totalRecords = data.totalElements;
+        this.loading = false;
+        
+        this.cdr.detectChanges(); 
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error(err);
+      }
+    });
+  }
+
+  refreshTable() {
+    this.loadEmpresas({ first: 0, rows: this.rows });
+  }
 
   openNew(){
     this.empresa = {} as EmpresaResponse;
@@ -62,7 +90,7 @@ export class Listaempresas implements OnInit {
       this.messageService.add({severity:'success',
         summary:'Empresa desactivada',
         detail:'Empresa '+this.empresa.razonSocial+' desactivada correctamente'});
-        this.getEmpresas();
+        this.refreshTable();
     });
   }
 
@@ -86,7 +114,7 @@ export class Listaempresas implements OnInit {
         this.messageService.add({severity:'success',
           summary:'Empresa actualizada',
           detail:'Empresa '+this.empresa.razonSocial+' actualizada correctamente'});
-        this.getEmpresas();
+        this.refreshTable();
       });
     } else {
       this.empresaService.crear(empresaRequest).subscribe((data)=>{
@@ -94,7 +122,7 @@ export class Listaempresas implements OnInit {
         this.messageService.add({severity:'success',
           summary:'Empresa registrada',
           detail:'Empresa '+this.empresa.razonSocial+' registrada correctamente'});
-        this.getEmpresas();
+        this.refreshTable();
       });
     }
 
@@ -109,7 +137,7 @@ export class Listaempresas implements OnInit {
           summary: 'Empresa Activada',
           detail: `La empresa ${empresa.razonSocial} ha sido activada correctamente.`
         });
-        this.getEmpresas(); 
+        this.refreshTable(); 
       },
       error: (err) => {
         this.messageService.add({

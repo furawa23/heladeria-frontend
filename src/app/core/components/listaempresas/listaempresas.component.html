@@ -10,7 +10,13 @@
                 </ng-template>
             </p-toolbar>
 
-            <p-table #dt [value]="(empresas$ | async) ?? []" responsiveLayout="scroll" [rows]="10" [globalFilterFields]="['ruc','razonSocial','nombreDuenio','telefono']" [paginator]="true" [rowsPerPageOptions]="[10,20,30]" [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" selectionMode="multiple" [rowHover]="true" dataKey="id">
+            <p-table #dt [value]="empresas" [lazy]="true" 
+            (onLazyLoad)="loadEmpresas($event)"
+            [paginator]="true" 
+            [rows]="rows" 
+            [totalRecords]="totalRecords" 
+            [loading]="loading"
+            [rowsPerPageOptions]="rowsPerPageOptions" responsiveLayout="scroll" [globalFilterFields]="['ruc','razonSocial','nombreDuenio','telefono']" [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" selectionMode="multiple" [rowHover]="true" dataKey="id">
 
                 <ng-template pTemplate="header">
                     <tr>
@@ -18,7 +24,7 @@
                         <th pSortableColumn="razonSocial">Razón Social <p-sortIcon field="razonSocial"></p-sortIcon></th>
                         <th pSortableColumn="nombreDuenio">Nombre del Dueño <p-sortIcon field="nombreDuenio"></p-sortIcon></th>
                         <th pSortableColumn="telefono">Teléfono <p-sortIcon field="telefono"></p-sortIcon></th>
-                        
+                        <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
                         <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
                         
                         <th>Acciones</th>
@@ -41,6 +47,10 @@
 
                         <td style="width:14%; min-width:10rem;">
                             {{empresa.telefono}}
+                        </td>
+
+                        <td style="width:14%; min-width:10rem;">
+                            {{empresa.createdAt | date:'short'}}
                         </td>
 
                         <td>
