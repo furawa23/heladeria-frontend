@@ -26,62 +26,31 @@
                         <th pSortableColumn="telefono">Teléfono <p-sortIcon field="telefono"></p-sortIcon></th>
                         <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
                         <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
-                        
                         <th>Acciones</th>
                     </tr>
                 </ng-template>
 
                 <ng-template pTemplate="body" let-empresa>
                     <tr>
-                        <td style="width:14%; min-width:10rem;">
-                            {{empresa.ruc}}
-                        </td>
-
-                        <td style="width:14%; min-width:10rem;">
-                            {{empresa.razonSocial}}
-                        </td>
-
-                        <td style="width:14%; min-width:10rem;">
-                            {{empresa.nombreDuenio}}
-                        </td>
-
-                        <td style="width:14%; min-width:10rem;">
-                            {{empresa.telefono}}
-                        </td>
-
-                        <td style="width:14%; min-width:10rem;">
-                            {{empresa.createdAt | date:'short'}}
-                        </td>
-
+                        <td style="width:14%; min-width:10rem;">{{empresa.ruc}}</td>
+                        <td style="width:14%; min-width:10rem;">{{empresa.razonSocial}}</td>
+                        <td style="width:14%; min-width:10rem;">{{empresa.nombreDuenio}}</td>
+                        <td style="width:14%; min-width:10rem;">{{empresa.telefono}}</td>
+                        <td style="width:14%; min-width:10rem;">{{empresa.createdAt | date:'short'}}</td>
                         <td>
-                            <p-tag 
-                                [severity]="!empresa.deletedAt ? 'success' : 'danger'" 
-                                [value]="!empresa.deletedAt ? 'ACTIVA' : 'DESACTIVADA'"
-                                [rounded]="true">
+                            <p-tag [severity]="!empresa.deletedAt ? 'success' : 'danger'" 
+                                   [value]="!empresa.deletedAt ? 'ACTIVA' : 'DESACTIVADA'"
+                                   [rounded]="true">
                             </p-tag>
                         </td>
-
                         <td>
                             <div class="flex">
                                 <ng-container *ngIf="!empresa.deletedAt">
-                                    <button pButton pRipple icon="pi pi-pencil" 
-                                            class="p-button-rounded p-button-success mr-2" 
-                                            (click)="editEmpresa(empresa)"
-                                            pTooltip="Editar" tooltipPosition="top">
-                                    </button>
-                                    <button pButton pRipple icon="pi pi-trash" 
-                                            class="p-button-rounded p-button-warning" 
-                                            (click)="deleteEmpresa(empresa)"
-                                            pTooltip="Desactivar" tooltipPosition="top">
-                                    </button>
+                                    <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editEmpresa(empresa)" pTooltip="Editar" tooltipPosition="top"></button>
+                                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteEmpresa(empresa)" pTooltip="Desactivar" tooltipPosition="top"></button>
                                 </ng-container>
-                
                                 <ng-container *ngIf="empresa.deletedAt">
-                                    <button pButton pRipple icon="pi pi-refresh" 
-                                            class="p-button-rounded p-button-primary" 
-                                            (click)="restaurarEmpresa(empresa)"
-                                            pTooltip="Activar / Restaurar" tooltipPosition="top">
-                                    </button>
+                                    <button pButton pRipple icon="pi pi-refresh" class="p-button-rounded p-button-primary" (click)="restaurarEmpresa(empresa)" pTooltip="Activar / Restaurar" tooltipPosition="top"></button>
                                 </ng-container>
                             </div>
                         </td>
@@ -91,37 +60,49 @@
         </div>
 
         <p-dialog [(visible)]="empresaDialog" [style]="{width: '450px'}" header="Detalles de Empresa" [modal]="true" styleClass="p-fluid">
+            
             <ng-template pTemplate="content">
-                <div class="field mb-3">
-                    <label for="ruc" class="font-bold">RUC</label>
-                    <input type="text" pInputText id="ruc" [(ngModel)]="empresa.ruc" required autofocus 
-                           class="w-full" 
-                           [ngClass]="{'ng-invalid ng-dirty' : submitted && !empresa.ruc}"/>
-                    <small class="p-error block" *ngIf="submitted && !empresa.ruc">El RUC es requerido.</small>
-                </div>
-        
-                <div class="field mb-3">
-                    <label for="razonSocial" class="font-bold">Razón Social</label>
-                    <input type="text" pInputText id="razonSocial" [(ngModel)]="empresa.razonSocial" required 
-                           class="w-full" 
-                           [ngClass]="{'ng-invalid ng-dirty' : submitted && !empresa.razonSocial}"/>
-                    <small class="p-error block" *ngIf="submitted && !empresa.razonSocial">La razón social es requerida.</small>
-                </div>
-        
-                <div class="field mb-3">
-                    <label for="nombreDuenio" class="font-bold">Nombre del Dueño</label>
-                    <input type="text" pInputText id="nombreDuenio" [(ngModel)]="empresa.nombreDuenio" required 
-                           class="w-full"
-                           [ngClass]="{'ng-invalid ng-dirty' : submitted && !empresa.nombreDuenio}"/>
-                    <small class="p-error block" *ngIf="submitted && !empresa.nombreDuenio">El nombre es requerido.</small>
-                </div>
-        
-                <div class="field mb-3">
-                    <label for="telefono" class="font-bold">Teléfono</label>
-                    <input type="text" pInputText id="telefono" [(ngModel)]="empresa.telefono" required 
-                           class="w-full"
-                           [ngClass]="{'ng-invalid ng-dirty' : submitted && !empresa.telefono}"/>
-                    <small class="p-error block" *ngIf="submitted && !empresa.telefono">El teléfono es requerido.</small>
+                <div [formGroup]="form">
+                    
+                    <div class="field mb-3">
+                        <label for="ruc" class="font-bold">RUC</label>
+                        <input type="text" pInputText id="ruc" formControlName="ruc" 
+                               class="w-full" 
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['ruc'].invalid}"/>
+                        
+                        <div *ngIf="submitted && form.controls['ruc'].invalid" class="p-error block">
+                            <small *ngIf="form.controls['ruc'].errors?.['required']">El RUC es requerido.</small>
+                            <small *ngIf="form.controls['ruc'].errors?.['pattern']">El RUC debe tener exactamente 11 números.</small>
+                        </div>
+                    </div>
+            
+                    <div class="field mb-3">
+                        <label for="razonSocial" class="font-bold">Razón Social</label>
+                        <input type="text" pInputText id="razonSocial" formControlName="razonSocial" 
+                               class="w-full" 
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['razonSocial'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['razonSocial'].invalid">La razón social es requerida.</small>
+                    </div>
+            
+                    <div class="field mb-3">
+                        <label for="nombreDuenio" class="font-bold">Nombre del Dueño</label>
+                        <input type="text" pInputText id="nombreDuenio" formControlName="nombreDuenio" 
+                               class="w-full"
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['nombreDuenio'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['nombreDuenio'].invalid">El nombre es requerido.</small>
+                    </div>
+            
+                    <div class="field mb-3">
+                        <label for="telefono" class="font-bold">Teléfono</label>
+                        <input type="text" pInputText id="telefono" formControlName="telefono" 
+                               class="w-full"
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['telefono'].invalid}"/>
+                        <div *ngIf="submitted && form.controls['telefono'].invalid" class="p-error block">
+                            <small *ngIf="form.controls['telefono'].errors?.['required']">El teléfono es requerido.</small>
+                            <small *ngIf="form.controls['telefono'].errors?.['pattern']">Solo se aceptan números.</small>
+                        </div>
+                    </div>
+
                 </div>
             </ng-template>
         
@@ -139,6 +120,27 @@
             <ng-template pTemplate="footer">
                 <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteEmpresaDialog = false"></button>
                 <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Yes" (click)="confirmDelete()"></button>
+            </ng-template>
+        </p-dialog>
+        <p-dialog [(visible)]="restoreConfirmDialog" header="Confirmar Activación" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-refresh mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span *ngIf="empresa">¿Estás seguro de RESTAURAR la empresa <b>{{empresa.razonSocial}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="restoreConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmRestaurar()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span>¿Estás seguro de guardar los cambios?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
             </ng-template>
         </p-dialog>
     </div>

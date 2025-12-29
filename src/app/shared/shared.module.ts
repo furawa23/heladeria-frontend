@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ToastModule } from "primeng/toast";
 import { ToolbarModule } from "primeng/toolbar";
 import { TableModule } from "primeng/table";
@@ -33,7 +33,8 @@ import { TagModule } from 'primeng/tag';
     RatingModule,
     TextareaModule,
     DialogModule,
-    TagModule
+    TagModule,
+    ReactiveFormsModule
   ],
   exports: [
     CommonModule,
@@ -51,7 +52,8 @@ import { TagModule } from 'primeng/tag';
     RatingModule,
     TextareaModule,
     DialogModule,
-    TagModule
+    TagModule,
+    ReactiveFormsModule
   ]
 })
 export class SharedModule {}
