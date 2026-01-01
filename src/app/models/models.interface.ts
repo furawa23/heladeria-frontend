@@ -20,6 +20,7 @@ export interface EmpresaRequest {
 export interface SucursalRequest {
   nombre: string;
   direccion: string;
+  idEmpresa: number;
 }
 
 export interface SucursalResponse {

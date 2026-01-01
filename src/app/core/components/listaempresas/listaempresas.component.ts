@@ -5,6 +5,7 @@ import { MessageService } from 'primeng/api';
 import { EmpresaService } from '../../../services/empresa.service';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-listaempresas',
@@ -40,12 +41,12 @@ export class Listaempresas implements OnInit {
     private empresaService: EmpresaService, 
     private messageService: MessageService, 
     private cdr: ChangeDetectorRef,
-    private fb: FormBuilder 
+    private fb: FormBuilder,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.initForm();
-    this.loadEmpresas({ first: 0, rows: 10 });
   }
 
   initForm() {
@@ -178,5 +179,9 @@ export class Listaempresas implements OnInit {
         console.error(err);
       }
     });
+  }
+
+  irASucursales(idEmpresa: number) {
+    this.router.navigate(['/sucursales'], { queryParams: { empresaId: idEmpresa } });
   }
 }

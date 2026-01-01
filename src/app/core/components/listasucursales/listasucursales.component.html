@@ -1,0 +1,140 @@
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-6">
+            <p-toast></p-toast>
+            <p-toolbar styleClass="mb-4">
+                <ng-template pTemplate="left">
+                    <div class="my-2">
+                        <button pButton pRipple label="Nueva Sucursal" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                    </div>
+                </ng-template>
+            </p-toolbar>
+            <div *ngIf="currentEmpresaId" class="mb-3 flex align-items-center">
+                <p-message severity="info" text="Filtrando sucursales por Empresa ID: {{currentEmpresaId}}" styleClass="mr-2"></p-message>
+                <button pButton label="Ver todas" icon="pi pi-times" class="p-button-text p-button-sm" (click)="clearFilter()"></button>
+            </div>
+            <p-table #dt [value]="sucursales"
+            [lazy]="true"
+            (onLazyLoad)="loadSucursales($event)"
+            [paginator]="true" 
+            [rows]="rows" 
+            [totalRecords]="totalRecords" 
+            [loading]="loading"
+            [rowsPerPageOptions]="rowsPerPageOptions" 
+            [globalFilterFields]="['nombre','direccion']" 
+            [showCurrentPageReport]="true" 
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros" 
+            [rowHover]="true" 
+            dataKey="id">
+
+            <ng-template pTemplate="header">
+                <tr>
+                    <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
+                    <th pSortableColumn="direccion">Dirección <p-sortIcon field="direccion"></p-sortIcon></th>
+                    <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
+                    <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
+                    <th>Acciones</th>
+                </tr>
+            </ng-template>
+        
+            <ng-template pTemplate="body" let-sucursal>
+                <tr>
+                    <td>{{sucursal.nombre}}</td>
+                    <td>{{sucursal.direccion}}</td>
+                    <td>{{sucursal.createdAt | date:'short'}}</td>
+                    <td>
+                        <p-tag [severity]="!sucursal.deletedAt ? 'success' : 'danger'" 
+                               [value]="!sucursal.deletedAt ? 'ACTIVA' : 'DESACTIVADA'"
+                               [rounded]="true">
+                        </p-tag>
+                    </td>
+                    <td>
+                       <div class="flex">
+                            <ng-container *ngIf="!sucursal.deletedAt">
+                                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editSucursal(sucursal)"></button>
+                                <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteSucursal(sucursal)"></button>
+                            </ng-container>
+                            <ng-container *ngIf="sucursal.deletedAt">
+                                <button pButton pRipple icon="pi pi-refresh" class="p-button-rounded p-button-primary" (click)="restaurarSucursal(sucursal)"></button>
+                            </ng-container>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="sucursalDialog" [style]="{width: '450px'}" header="Detalles de Sucursal" [modal]="true" styleClass="p-fluid">
+            
+            <ng-template pTemplate="content">
+                <div [formGroup]="form">
+                    
+                    <div class="field mb-3">
+                        <label for="idEmpresa" class="font-bold">Empresa</label>
+                        <p-select id="idEmpresa" class="w-full" [options]="empresasOptions" formControlName="idEmpresa" 
+                                    optionLabel="razonSocial" optionValue="id" 
+                                    placeholder="Seleccione una empresa"
+                                    [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idEmpresa'].invalid}"></p-select>
+                        <small class="p-error block" *ngIf="submitted && form.controls['idEmpresa'].invalid">La empresa es requerida.</small>
+                    </div>
+
+                    <div class="field mb-3">
+                        <label for="nombre" class="font-bold">Nombre</label>
+                        <input type="text" pInputText id="nombre" formControlName="nombre" 
+                               class="w-full" 
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['nombre'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['nombre'].invalid">El nombre es requerido.</small>
+                    </div>
+            
+                    <div class="field mb-3">
+                        <label for="direccion" class="font-bold">Dirección</label>
+                        <input type="text" pInputText id="direccion" formControlName="direccion" 
+                               class="w-full"
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['direccion'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['direccion'].invalid">La dirección es requerida.</small>
+                    </div>
+
+                </div>
+            </ng-template>
+        
+            <ng-template pTemplate="footer">
+                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
+                <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveSucursal()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="deleteSucursalDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem"></i>
+                <span *ngIf="sucursal">¿Estás seguro de DESACTIVAR la sucursal <b>{{sucursal.nombre}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteSucursalDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmDelete()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="restoreConfirmDialog" header="Confirmar Activación" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-refresh mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span *ngIf="sucursal">¿Estás seguro de RESTAURAR la sucursal <b>{{sucursal.nombre}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="restoreConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmRestaurar()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span>¿Estás seguro de guardar los cambios?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
+            </ng-template>
+        </p-dialog>
+    </div>
+</div>

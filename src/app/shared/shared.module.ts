@@ -15,6 +15,7 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { RatingModule } from 'primeng/rating';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
+import { MessageModule } from 'primeng/message';
 
 @NgModule({
   imports: [
@@ -34,7 +35,8 @@ import { TagModule } from 'primeng/tag';
     TextareaModule,
     DialogModule,
     TagModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    MessageModule
   ],
   exports: [
     CommonModule,
@@ -53,7 +55,8 @@ import { TagModule } from 'primeng/tag';
     TextareaModule,
     DialogModule,
     TagModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    MessageModule
   ]
 })
 export class SharedModule {}
