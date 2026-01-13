@@ -32,6 +32,26 @@ export interface SucursalResponse {
   deletedAt?: Date;
 }
 
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  usuario: Usuario;
+}
+
+export interface Usuario {
+  createdAt: Date;
+  updatedAt: Date;
+  id: number;
+  username: string;
+  rol: string;
+  nombreEmpresa: string;   // Puedes enviar nombres en vez de objetos completos
+  nombreSucursal: string
+}
+
 export interface Page<T> {
     content: T[];
     totalPages: number;

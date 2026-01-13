@@ -3,7 +3,6 @@ import { SharedModule } from '../../../shared/shared.module';
 import { EmpresaResponse, EmpresaRequest } from '../../../models/models.interface';
 import { MessageService } from 'primeng/api';
 import { EmpresaService } from '../../../services/empresa.service';
-import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -13,7 +12,7 @@ import { Router } from '@angular/router';
   templateUrl: './listaempresas.component.html',
   styleUrl: './listaempresas.component.scss',
   providers: [
-    HttpClient, EmpresaService, MessageService
+    EmpresaService, MessageService
   ]
 })
 export class Listaempresas implements OnInit {

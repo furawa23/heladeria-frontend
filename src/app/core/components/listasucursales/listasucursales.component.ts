@@ -4,7 +4,6 @@ import { SucursalResponse, SucursalRequest, EmpresaResponse } from '../../../mod
 import { MessageService } from 'primeng/api';
 import { SucursalService } from '../../../services/sucursal.service';
 import { EmpresaService } from '../../../services/empresa.service';
-import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Router } from '@angular/router';
@@ -15,7 +14,7 @@ import { Router } from '@angular/router';
   templateUrl: './listasucursales.component.html',
   styleUrl: './listasucursales.component.scss',
   providers: [
-    HttpClient, SucursalService, EmpresaService, MessageService
+    SucursalService, EmpresaService, MessageService
   ]
 })
 export class Listasucursales implements OnInit {

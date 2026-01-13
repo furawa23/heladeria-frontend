@@ -16,6 +16,9 @@ import { RatingModule } from 'primeng/rating';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
+import { AppFloatingConfigurator } from '../layout/component/app.floatingconfigurator';
+import { PasswordModule } from 'primeng/password';
+import { CheckboxModule } from 'primeng/checkbox';
 
 @NgModule({
   imports: [
@@ -36,7 +39,9 @@ import { MessageModule } from 'primeng/message';
     DialogModule,
     TagModule,
     ReactiveFormsModule,
-    MessageModule
+    MessageModule,
+    AppFloatingConfigurator,
+    PasswordModule
   ],
   exports: [
     CommonModule,
@@ -56,7 +61,9 @@ import { MessageModule } from 'primeng/message';
     DialogModule,
     TagModule,
     ReactiveFormsModule,
-    MessageModule
+    MessageModule,
+    AppFloatingConfigurator,
+    PasswordModule
   ]
 })
 export class SharedModule {}
