@@ -5,8 +5,7 @@ import { MessageService } from 'primeng/api';
 import { SucursalService } from '../../../services/sucursal.service';
 import { EmpresaService } from '../../../services/empresa.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-listasucursales',
@@ -19,7 +18,12 @@ import { Router } from '@angular/router';
 })
 export class Listasucursales implements OnInit {
 
-  currentEmpresaId: number | null = null;
+  // Filtros
+  selectedEmpresa: number | null = null;
+  empresasFilterOptions: EmpresaResponse[] = [];
+
+  // Dropdowns del formulario
+  empresasFormOptions: EmpresaResponse[] = [];
 
   sucursalDialog: boolean = false;
   deleteSucursalDialog: boolean = false;
@@ -27,9 +31,6 @@ export class Listasucursales implements OnInit {
   sucursal!: SucursalResponse; 
   sucursales: SucursalResponse[] = [];
   
-  // Lista para el dropdown de empresas
-  empresasOptions: EmpresaResponse[] = [];
-
   form!: FormGroup;
 
   totalRecords: number = 0;
@@ -44,7 +45,7 @@ export class Listasucursales implements OnInit {
 
   constructor(
     private sucursalService: SucursalService,
-    private empresaService: EmpresaService, // Necesario para llenar el dropdown
+    private empresaService: EmpresaService,
     private messageService: MessageService, 
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder,
@@ -54,15 +55,25 @@ export class Listasucursales implements OnInit {
 
   ngOnInit(): void {
     this.initForm();
-    this.loadEmpresasForDropdown();
-    this.route.queryParams.subscribe(params => {
-      if (params['empresaId']) {
-        this.currentEmpresaId = +params['empresaId'];
-      } else {
-        this.currentEmpresaId = null;
-      }
-      this.loadSucursales({ first: 0, rows: 10 });
-    });
+    this.loadEmpresas();
+
+    // 1. Intentamos leer del STATE (Viene oculto)
+    const navigation = this.router.getCurrentNavigation(); // Solo funciona en constructor a veces, mejor history.state
+    const stateEmpresaId = history.state.empresaId;
+
+    if (stateEmpresaId) {
+       this.selectedEmpresa = +stateEmpresaId;
+       this.loadSucursales({ first: 0, rows: 10 });
+    } 
+    // 2. Si no hay state, revisamos QueryParams (por si acaso alguien entra por link antiguo)
+    else {
+      this.route.queryParams.subscribe(params => {
+        if (params['empresaId']) {
+          this.selectedEmpresa = +params['empresaId'];
+        }
+        this.loadSucursales({ first: 0, rows: 10 });
+      });
+    }
   }
 
   initForm() {
@@ -73,16 +84,18 @@ export class Listasucursales implements OnInit {
     });
   }
 
-  // Carga las empresas para poder seleccionarlas al crear una sucursal
-  loadEmpresasForDropdown() {
-    // Pedimos una pagina grande para traer todas, o usar un endpoint 'listAll' si existe
+  // Cargamos empresas una sola vez para usar en filtro y formulario
+  loadEmpresas() {
     this.empresaService.listarTodas(0, 1000).subscribe({
         next: (data) => {
-            this.empresasOptions = data.content;
+            this.empresasFilterOptions = data.content;
+            this.empresasFormOptions = data.content;
+            this.cdr.detectChanges();
         }
     });
   }
 
+// Lógica principal de carga con filtro y ordenamiento
   loadSucursales(event: any) {
     this.loading = true;
     const first = event?.first ?? 0;
@@ -90,33 +103,57 @@ export class Listasucursales implements OnInit {
     const page = first / rows;
     const size = rows;
 
-    // LÓGICA CONDICIONAL: ¿Filtramos o traemos todo?
-    if (this.currentEmpresaId) {
-        this.sucursalService.listarPorEmpresa(page, size, this.currentEmpresaId).subscribe({
-            next: (data) => {
-                this.sucursales = data.content;
-                this.totalRecords = data.totalElements;
-                this.loading = false;
-                this.cdr.detectChanges();
-            },
-            error: (err) => { this.loading = false; }
-        });
-    } else {
-        // Carga normal (todas)
-        this.sucursalService.listarTodas(page, size).subscribe({
-            next: (data) => {
-                this.sucursales = data.content;
-                this.totalRecords = data.totalElements;
-                this.loading = false;
-                this.cdr.detectChanges();
-            },
-            error: (err) => { this.loading = false; }
-        });
+    // --- LÓGICA DE ORDENAMIENTO ---
+    let sortStr = '';
+    if (event.sortField) {
+        // PrimeNG envía 1 para Ascendente, -1 para Descendente
+        // Convertimos a 'asc' o 'desc' para Spring Boot
+        const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
+        sortStr = `${event.sortField},${sortOrder}`;
     }
+    // ------------------------------
+
+    if (this.selectedEmpresa) {
+        // Filtrado por Empresa (pasamos sortStr como 4to argumento)
+        this.sucursalService.listarPorEmpresa(page, size, this.selectedEmpresa, sortStr)
+            .subscribe(this.processData());
+    } else {
+        // Listar Todas (pasamos sortStr como 3er argumento)
+        this.sucursalService.listarTodas(page, size, sortStr)
+            .subscribe(this.processData());
+    }
+  }
+  // Helper para procesar respuesta
+  processData() {
+    return {
+      next: (data: any) => {
+        this.sucursales = data.content;
+        this.totalRecords = data.totalElements;
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => { this.loading = false; }
+    };
   }
 
   refreshTable() {
     this.loadSucursales({ first: 0, rows: this.rows });
+  }
+
+  // Se ejecuta al cambiar el dropdown de filtro
+  onEmpresaFilterChange() {
+    this.refreshTable();
+  }
+
+  clearFilters() {
+      this.selectedEmpresa = null;
+      // Limpiamos la URL también
+      this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { empresaId: null },
+          queryParamsHandling: 'merge'
+      });
+      this.refreshTable();
   }
 
   openNew(){
@@ -125,33 +162,24 @@ export class Listasucursales implements OnInit {
     this.sucursalDialog = true;
     this.form.reset();
 
-    // Si hay un filtro activo, seteamos el valor en el dropdown automáticamente
-    if (this.currentEmpresaId) {
-        this.form.patchValue({ idEmpresa: this.currentEmpresaId });
-        // Opcional: Deshabilitar el control para que no lo cambien
-        // this.form.controls['idEmpresa'].disable(); 
+    // Si hay una empresa filtrada, la pre-seleccionamos en el formulario
+    if (this.selectedEmpresa) {
+        this.form.patchValue({ idEmpresa: this.selectedEmpresa });
     }
-  }
-
-  clearFilter() {
-      this.currentEmpresaId = null;
-      // Navegamos a la misma ruta sin parametros para limpiar la URL
-      this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: { empresaId: null },
-          queryParamsHandling: 'merge'
-      });
   }
 
   editSucursal(sucursal: SucursalResponse){
     this.sucursal = {...sucursal};
     this.sucursalDialog = true;
     
-    // Al editar, debemos setear los valores. 
-    // NOTA: Si sucursalResponse no trae idEmpresa, habrá que ajustar el backend
-    // o asumir que no se cambia la empresa. Aquí asumo que lo tienes o lo seleccionas.
+    // Mapeo de datos para editar
+    // Aseguramos que idEmpresa se extraiga correctamente si viene en un objeto anidado
+    // Asumo que tu SucursalResponse tiene un campo 'empresa' con 'id', o un campo 'idEmpresa' plano.
+    // Ajusta esto según tu DTO real:
+    const idEmpresaValue = (sucursal as any).idEmpresa || (sucursal as any).empresa?.id;
+
     this.form.patchValue({
-      // idEmpresa: sucursal.idEmpresa, // Descomentar si tu DTO trae este campo
+      idEmpresa: idEmpresaValue,
       nombre: sucursal.nombre,
       direccion: sucursal.direccion
     });
@@ -164,7 +192,7 @@ export class Listasucursales implements OnInit {
 
   confirmDelete(){
     this.deleteSucursalDialog = false;
-    this.sucursalService.eliminar(this.sucursal.id).subscribe((data)=>{
+    this.sucursalService.eliminar(this.sucursal.id).subscribe(()=>{
       this.messageService.add({severity:'success', summary:'Sucursal desactivada', detail:'Sucursal desactivada correctamente'});
       this.refreshTable();
     });
@@ -177,18 +205,18 @@ export class Listasucursales implements OnInit {
 
   saveSucursal(){
     this.submitted = true;
-
     if (this.form.invalid) {
       return;
     }
-    
     this.saveConfirmDialog = true;
   }
 
   confirmSave() {
     this.saveConfirmDialog = false;
     
-    const formValues = this.form.value;
+    // Usamos getRawValue por seguridad (buenas prácticas)
+    const formValues = this.form.getRawValue();
+    
     const sucursalRequest: SucursalRequest = {
       idEmpresa: formValues.idEmpresa,
       nombre: formValues.nombre,
@@ -196,13 +224,13 @@ export class Listasucursales implements OnInit {
     };
 
     if(this.sucursal.id){
-      this.sucursalService.actualizar(this.sucursal.id, sucursalRequest).subscribe((data)=>{
+      this.sucursalService.actualizar(this.sucursal.id, sucursalRequest).subscribe(()=>{
         this.messageService.add({severity:'success', summary:'Sucursal actualizada', detail:'Sucursal actualizada correctamente'});
         this.refreshTable();
         this.sucursalDialog = false;
       });
     } else {
-      this.sucursalService.crear(sucursalRequest).subscribe((data)=>{
+      this.sucursalService.crear(sucursalRequest).subscribe(()=>{
         this.messageService.add({severity:'success', summary:'Sucursal registrada', detail:'Sucursal registrada correctamente'});
         this.refreshTable();
         this.sucursalDialog = false;

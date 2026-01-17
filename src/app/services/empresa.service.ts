@@ -17,10 +17,14 @@ export class EmpresaService {
     return this.http.post<EmpresaResponse>(this.apiUrl, empresa);
   }
 
-  listarTodas(page: number = 0, size: number = 10): Observable<Page<EmpresaResponse>> {
+  listarTodas(page: number = 0, size: number = 10, sort: string = ''): Observable<Page<EmpresaResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
+      
+      if (sort) {
+        params = params.set('sort', sort);
+      }
 
     return this.http.get<Page<EmpresaResponse>>(this.apiUrl, { params });
   }

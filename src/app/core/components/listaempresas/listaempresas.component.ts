@@ -69,7 +69,17 @@ export class Listaempresas implements OnInit {
     const page = first / rows;
     const size = rows;
 
-    this.empresaService.listarTodas(page, size).subscribe({
+    // --- LÓGICA DE ORDENAMIENTO ---
+    let sortStr = '';
+    if (event.sortField) {
+        // PrimeNG: 1 = Ascendente, -1 = Descendente
+        // Spring Boot espera: 'asc' o 'desc'
+        const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
+        sortStr = `${event.sortField},${sortOrder}`;
+    }
+    // ------------------------------
+
+    this.empresaService.listarTodas(page, size, sortStr).subscribe({
       next: (data) => {
         this.empresas = data.content;
         this.totalRecords = data.totalElements;
@@ -181,6 +191,10 @@ export class Listaempresas implements OnInit {
   }
 
   irASucursales(idEmpresa: number) {
-    this.router.navigate(['/sucursales'], { queryParams: { empresaId: idEmpresa } });
+    // Navegamos a /sucursales sin queryParams visuales
+    this.router.navigate(['/sucursales'], { 
+      state: { empresaId: idEmpresa } 
+    });
   }
+  
 }

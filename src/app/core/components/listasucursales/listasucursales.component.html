@@ -2,17 +2,39 @@
     <div class="col-12">
         <div class="card px-6 py-6">
             <p-toast></p-toast>
+            
             <p-toolbar styleClass="mb-4">
                 <ng-template pTemplate="left">
                     <div class="my-2">
                         <button pButton pRipple label="Nueva Sucursal" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
                     </div>
                 </ng-template>
+                <ng-template pTemplate="right">
+                    <button pButton pRipple label="Refrescar" icon="pi pi-refresh" class="p-button-help" (click)="refreshTable()"></button>
+                </ng-template>
             </p-toolbar>
-            <div *ngIf="currentEmpresaId" class="mb-3 flex align-items-center">
-                <p-message severity="info" text="Filtrando sucursales por Empresa ID: {{currentEmpresaId}}" styleClass="mr-2"></p-message>
-                <button pButton label="Ver todas" icon="pi pi-times" class="p-button-text p-button-sm" (click)="clearFilter()"></button>
+
+            <div class="card mb-3 p-fluid">
+                <h5>Filtros de Búsqueda</h5>
+                <div class="formgrid grid">
+                    
+                    <div class="field col-12 md:col-6">
+                        <label for="filtroEmpresa">Filtrar por Empresa</label>
+                        <p-select [options]="empresasFilterOptions" 
+                                    [(ngModel)]="selectedEmpresa" 
+                                    optionLabel="razonSocial" 
+                                    optionValue="id"
+                                    [showClear]="true"
+                                    (onChange)="onEmpresaFilterChange()"
+                                    placeholder="Todas las empresas"></p-select>
+                    </div>
+
+                    <div class="field col-12 md:col-2 flex align-items-end">
+                        <button pButton label="Limpiar" icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary" (click)="clearFilters()"></button>
+                    </div>
+                </div>
             </div>
+
             <p-table #dt [value]="sucursales"
             [lazy]="true"
             (onLazyLoad)="loadSucursales($event)"
@@ -30,6 +52,7 @@
             <ng-template pTemplate="header">
                 <tr>
                     <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
+                    <th>Empresa</th>
                     <th pSortableColumn="direccion">Dirección <p-sortIcon field="direccion"></p-sortIcon></th>
                     <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
                     <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
@@ -40,6 +63,7 @@
             <ng-template pTemplate="body" let-sucursal>
                 <tr>
                     <td>{{sucursal.nombre}}</td>
+                    <td>{{sucursal.empresa?.razonSocial || sucursal.nombreEmpresa || '-'}}</td>
                     <td>{{sucursal.direccion}}</td>
                     <td>{{sucursal.createdAt | date:'short'}}</td>
                     <td>
@@ -61,19 +85,26 @@
                     </td>
                 </tr>
             </ng-template>
-            
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="sucursalDialog" [style]="{width: '450px'}" header="Detalles de Sucursal" [modal]="true" styleClass="p-fluid">
+        <p-dialog [(visible)]="sucursalDialog" 
+                  [style]="{width: '450px'}" 
+                  [contentStyle]="{'min-height': '350px'}" 
+                  header="Detalles de Sucursal" 
+                  [modal]="true" 
+                  styleClass="p-fluid">
             
             <ng-template pTemplate="content">
                 <div [formGroup]="form">
                     
                     <div class="field mb-3">
                         <label for="idEmpresa" class="font-bold">Empresa</label>
-                        <p-select id="idEmpresa" class="w-full" [options]="empresasOptions" formControlName="idEmpresa" 
+                        <p-select id="idEmpresa" class="w-full" 
+                                    [options]="empresasFormOptions" 
+                                    formControlName="idEmpresa" 
                                     optionLabel="razonSocial" optionValue="id" 
+                                    appendTo="body"
                                     placeholder="Seleccione una empresa"
                                     [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idEmpresa'].invalid}"></p-select>
                         <small class="p-error block" *ngIf="submitted && form.controls['idEmpresa'].invalid">La empresa es requerida.</small>
@@ -95,6 +126,7 @@
                         <small class="p-error block" *ngIf="submitted && form.controls['direccion'].invalid">La dirección es requerida.</small>
                     </div>
 
+                    <div class="mb-5"></div>
                 </div>
             </ng-template>
         

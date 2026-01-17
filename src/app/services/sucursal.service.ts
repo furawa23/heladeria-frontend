@@ -17,16 +17,27 @@ export class SucursalService {
     return this.http.post<SucursalResponse>(this.apiUrl, sucursal);
   }
 
-  listarTodas(page: number = 0, size: number = 10): Observable<Page<SucursalResponse>> {
+  listarTodas(page: number = 0, size: number = 10, sort: string = ''): Observable<Page<SucursalResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
 
+      if (sort) {
+        params = params.set('sort', sort);
+      }
+
     return this.http.get<Page<SucursalResponse>>(this.apiUrl, { params });
   }
   
-  listarPorEmpresa(page: number, size: number, idEmpresa: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/empresa/${idEmpresa}?page=${page}&size=${size}`);
+  listarPorEmpresa(page: number, size: number, idEmpresa: number, sort: string = ''): Observable<any> {
+    let params = new HttpParams()
+    .set('page', page.toString())
+    .set('size', size.toString());
+
+    if (sort) {
+      params = params.set('sort', sort);
+    }
+    return this.http.get<any>(`${this.apiUrl}/empresa/${idEmpresa}`, { params });
   }
   
   obtenerPorId(id: number): Observable<SucursalResponse> {

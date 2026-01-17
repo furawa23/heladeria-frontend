@@ -1,0 +1,215 @@
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-6">
+            <p-toast></p-toast>
+            
+            <p-toolbar styleClass="mb-4">
+                <ng-template pTemplate="left">
+                    <div class="my-2">
+                        <button pButton pRipple label="Nuevo Usuario" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="right">
+                    <button pButton pRipple label="Refrescar" icon="pi pi-refresh" class="p-button-help" (click)="refreshTable()"></button>
+                </ng-template>
+            </p-toolbar>
+
+            <div class="card mb-3 p-fluid">
+                <h5>Filtros de Búsqueda</h5>
+                <div class="formgrid grid">
+                    
+                    <div class="field col-12 md:col-4">
+                        <label for="filtroEmpresa">Empresa</label>
+                        <p-select [options]="empresasFilterOptions" 
+                                    [(ngModel)]="selectedEmpresa" 
+                                    optionLabel="razonSocial" 
+                                    optionValue="id"
+                                    [showClear]="true"
+                                    (onChange)="onEmpresaFilterChange()"
+                                    placeholder="Todas las empresas"></p-select>
+                    </div>
+
+                    <div class="field col-12 md:col-4">
+                        <label for="filtroSucursal">Sucursal</label>
+                        <p-select [options]="sucursalesFilterOptions" 
+                                    [(ngModel)]="selectedSucursal" 
+                                    optionLabel="nombre" 
+                                    optionValue="id"
+                                    [showClear]="true"
+                                    (onChange)="refreshTable()"
+                                    placeholder="Todas las sucursales"
+                                    [disabled]="!selectedEmpresa && sucursalesFilterOptions.length > 50"> 
+                                    </p-select>
+                    </div>
+
+                    <div class="field col-12 md:col-2 flex align-items-end">
+                        <button pButton label="Limpiar Filtros" icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary" (click)="clearFilters()"></button>
+                    </div>
+                </div>
+            </div>
+
+            <p-table #dt [value]="usuarios"
+            [lazy]="true"
+            (onLazyLoad)="loadUsuarios($event)"
+            [paginator]="true" 
+            [rows]="rows" 
+            [totalRecords]="totalRecords" 
+            [loading]="loading"
+            [rowsPerPageOptions]="rowsPerPageOptions" 
+            [globalFilterFields]="['username','rol']" 
+            [showCurrentPageReport]="true" 
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros" 
+            [rowHover]="true" 
+            dataKey="id">
+
+            <ng-template pTemplate="header">
+                <tr>
+                    <th pSortableColumn="username">Usuario <p-sortIcon field="username"></p-sortIcon></th>
+                    <th pSortableColumn="rol">Rol <p-sortIcon field="rol"></p-sortIcon></th>
+                    <th>Empresa</th> <th>Sucursal</th> <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
+                    <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
+                    <th>Acciones</th>
+                </tr>
+            </ng-template>
+        
+            <ng-template pTemplate="body" let-usuario>
+                <tr>
+                    <td>{{usuario.username}}</td>
+                    <td><p-tag [value]="usuario.rol" severity="info"></p-tag></td>
+                    
+                    <td>{{usuario.nombreEmpresa || '-'}}</td>
+                    <td>{{usuario.nombreSucursal || '-'}}</td>
+
+                    <td>{{usuario.createdAt | date:'short'}}</td>
+                    <td>
+                        <p-tag [severity]="!usuario.deletedAt ? 'success' : 'danger'" 
+                               [value]="!usuario.deletedAt ? 'ACTIVO' : 'INACTIVO'"
+                               [rounded]="true">
+                        </p-tag>
+                    </td>
+                    <td>
+                       <div class="flex">
+                            <ng-container *ngIf="!usuario.deletedAt">
+                                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editUsuario(usuario)"></button>
+                                <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteUsuario(usuario)"></button>
+                            </ng-container>
+                            <ng-container *ngIf="usuario.deletedAt">
+                                <button pButton pRipple icon="pi pi-refresh" class="p-button-rounded p-button-primary" (click)="restaurarUsuario(usuario)"></button>
+                            </ng-container>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="usuarioDialog" 
+                  [style]="{width: '380px'}" 
+                  [contentStyle]="{'min-height': '380px'}"
+                  header="Detalles de Usuario" 
+                  [modal]="true" 
+                  styleClass="p-fluid">
+            
+            <ng-template pTemplate="content">
+                <div [formGroup]="form">
+
+                    <div class="field mb-3">
+                        <label for="rol" class="font-bold">Rol</label>
+                        <p-select id="rol" class="w-full" 
+                                    [options]="rolesOptions" 
+                                    formControlName="rol" 
+                                    optionLabel="label" optionValue="value" 
+                                    appendTo="body"
+                                    (onChange)="onRolChange()" 
+                                    placeholder="Seleccione un rol"
+                                    [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['rol'].invalid}"></p-select>
+                        <small class="p-error block" *ngIf="submitted && form.controls['rol'].invalid">El rol es requerido.</small>
+                    </div>
+                
+                    <div class="field mb-3">
+                        <label for="idEmpresa" class="font-bold">Empresa</label>
+                        <p-select id="idEmpresa" class="w-full" 
+                                    [options]="empresasFormOptions" 
+                                    formControlName="idEmpresa" 
+                                    optionLabel="razonSocial" optionValue="id" 
+                                    appendTo="body"
+                                    (onChange)="onEmpresaChange()"
+                                    placeholder="Seleccione una empresa"
+                                    [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idEmpresa'].invalid}"></p-select>
+                        <small class="p-error block" *ngIf="submitted && form.controls['idEmpresa'].invalid">La empresa es requerida para este rol.</small>
+                    </div>
+                
+                    <div class="field mb-3">
+                        <label for="idSucursal" class="font-bold">Sucursal</label>
+                        <p-select id="idSucursal" class="w-full" 
+                                    [options]="sucursalesFormOptions" 
+                                    formControlName="idSucursal" 
+                                    optionLabel="nombre" optionValue="id" 
+                                    appendTo="body"
+                                    placeholder="Seleccione una sucursal"
+                                    emptyMessage="Seleccione una empresa primero"
+                                    [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idSucursal'].invalid}"></p-select>
+                        <small class="p-error block" *ngIf="submitted && form.controls['idSucursal'].invalid">La sucursal es requerida.</small>
+                        <small class="block text-gray-500" *ngIf="form.get('rol')?.value === 'DUENO'">Los dueños se asignan a nivel de Empresa, no de Sucursal.</small>
+                    </div>
+                
+                    <div class="field mb-3">
+                        <label for="username" class="font-bold">Username</label>
+                        <input type="text" pInputText id="username" formControlName="username" 
+                               class="w-full" 
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['username'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['username'].invalid">El username es requerido.</small>
+                    </div>
+                
+                    <div class="field mb-3">
+                        <label for="password" class="font-bold">Contraseña</label>
+                        <p-password id="password" formControlName="password" 
+                                    [toggleMask]="true" [feedback]="false"
+                                    class="w-full" [style]="{'width':'100%'}" inputStyleClass="w-full"
+                                    placeholder="{{usuario.id ? '(Dejar vacío para mantener)' : ''}}"
+                                    [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['password'].invalid}"></p-password>
+                        <small class="p-error block" *ngIf="submitted && form.controls['password'].invalid">La contraseña es requerida.</small>
+                    </div>
+                
+                </div>
+            </ng-template>
+        
+            <ng-template pTemplate="footer">
+                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
+                <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveUsuario()"></button>
+            </ng-template>
+        </p-dialog>
+
+        </div>
+        <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span>¿Estás seguro de guardar los cambios?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="deleteUsuarioDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: #d32f2f"></i> <span *ngIf="usuario">¿Estás seguro de DESACTIVAR al usuario <b>{{usuario.username}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteUsuarioDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmDelete()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="restoreConfirmDialog" header="Confirmar Activación" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-refresh mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span *ngIf="usuario">¿Estás seguro de RESTAURAR al usuario <b>{{usuario.username}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="restoreConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmRestaurar()"></button>
+            </ng-template>
+        </p-dialog>
+</div>

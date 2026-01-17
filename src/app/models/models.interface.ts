@@ -30,6 +30,7 @@ export interface SucursalResponse {
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+  nombreEmpresa: string;
 }
 
 export interface LoginRequest {
@@ -39,17 +40,33 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   token: string;
-  usuario: Usuario;
+  usuario: UsuarioResponse;
 }
 
-export interface Usuario {
+export interface RegisterRequest {
+  username: string;
+  password?: string;
+  rol: string;
+}
+
+export interface UsuarioRequest {
+  username: string;
+  password?: string;
+  rol: string;
+  idSucursal?: number | null;
+  idEmpresa?: number | null;
+}
+
+export interface UsuarioResponse {
   createdAt: Date;
   updatedAt: Date;
   id: number;
   username: string;
   rol: string;
-  nombreEmpresa: string;   // Puedes enviar nombres en vez de objetos completos
-  nombreSucursal: string
+  nombreEmpresa: string;
+  nombreSucursal: string;
+  idSucursal?: number;
+  idEmpresa?: number;
 }
 
 export interface Page<T> {
