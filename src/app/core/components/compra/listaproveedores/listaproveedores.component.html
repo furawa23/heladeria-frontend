@@ -1,0 +1,122 @@
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-6">
+            <p-toast></p-toast>
+            
+            <p-toolbar styleClass="mb-4">
+                <ng-template pTemplate="left">
+                    <div class="my-2">
+                        <button pButton pRipple label="Nuevo Proveedor" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="right">
+                    <button pButton pRipple label="Refrescar" icon="pi pi-refresh" class="p-button-help" (click)="refreshTable()"></button>
+                </ng-template>
+            </p-toolbar>
+
+            <p-table #dt [value]="proveedores"
+            [lazy]="true"
+            (onLazyLoad)="loadProveedores($event)"
+            [paginator]="true" 
+            [rows]="rows" 
+            [totalRecords]="totalRecords" 
+            [loading]="loading"
+            [rowsPerPageOptions]="rowsPerPageOptions" 
+            [showCurrentPageReport]="true" 
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros" 
+            [rowHover]="true" 
+            dataKey="id">
+
+            <ng-template pTemplate="header">
+                <tr>
+                    <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
+                    <th pSortableColumn="razonSocial">Razón Social <p-sortIcon field="razonSocial"></p-sortIcon></th>
+                    <th pSortableColumn="ruc">RUC <p-sortIcon field="ruc"></p-sortIcon></th>
+                    <th pSortableColumn="telefono">Teléfono <p-sortIcon field="telefono"></p-sortIcon></th>
+                    <th>Acciones</th>
+                </tr>
+            </ng-template>
+        
+            <ng-template pTemplate="body" let-proveedor>
+                <tr>
+                    <td>{{proveedor.id}}</td>
+                    <td>{{proveedor.razonSocial}}</td>
+                    <td>{{proveedor.ruc}}</td>
+                    <td>{{proveedor.telefono}}</td>
+                    <td>
+                       <div class="flex">
+                            <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editProveedor(proveedor)"></button>
+                            <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteProveedor(proveedor)"></button>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="proveedorDialog" 
+                  [style]="{width: '450px'}" 
+                  header="Detalles de Proveedor" 
+                  [modal]="true" 
+                  styleClass="p-fluid">
+            
+            <ng-template pTemplate="content">
+                <div [formGroup]="form">
+                    
+                    <div class="field mb-3">
+                        <label for="razonSocial" class="font-bold">Razón Social</label>
+                        <input type="text" pInputText id="razonSocial" formControlName="razonSocial" 
+                               class="w-full" 
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['razonSocial'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['razonSocial'].invalid">La razón social es requerida.</small>
+                    </div>
+
+                    <div class="field mb-3">
+                        <label for="ruc" class="font-bold">RUC</label>
+                        <input type="text" pInputText id="ruc" formControlName="ruc" 
+                               class="w-full" 
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['ruc'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['ruc'].hasError('required')">El RUC es requerido.</small>
+                        <small class="p-error block" *ngIf="submitted && (form.controls['ruc'].hasError('minlength') || form.controls['ruc'].hasError('maxlength'))">El RUC debe tener 11 dígitos.</small>
+                    </div>
+
+                    <div class="field mb-3">
+                        <label for="telefono" class="font-bold">Teléfono</label>
+                        <input type="text" pInputText id="telefono" formControlName="telefono" 
+                               class="w-full" 
+                               [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['telefono'].invalid}"/>
+                        <small class="p-error block" *ngIf="submitted && form.controls['telefono'].invalid">El teléfono es requerido.</small>
+                    </div>
+
+                </div>
+            </ng-template>
+        
+            <ng-template pTemplate="footer">
+                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
+                <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveProveedor()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="deleteProveedorDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem"></i>
+                <span *ngIf="proveedor">¿Estás seguro de ELIMINAR al proveedor <b>{{proveedor.razonSocial}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteProveedorDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmDelete()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span>¿Estás seguro de guardar los cambios?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
+            </ng-template>
+        </p-dialog>
+    </div>
+</div>

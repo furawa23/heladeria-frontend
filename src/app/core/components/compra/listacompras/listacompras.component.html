@@ -1,0 +1,162 @@
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-6">
+            <p-toast></p-toast>
+            
+            <p-toolbar styleClass="mb-4">
+                <ng-template pTemplate="left">
+                    <button pButton pRipple label="Nueva Compra" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                </ng-template>
+                <ng-template pTemplate="right">
+                    <button pButton pRipple label="Refrescar" icon="pi pi-refresh" class="p-button-help" (click)="loadCompras(null)"></button>
+                </ng-template>
+            </p-toolbar>
+
+            <p-table #dt [value]="compras" [lazy]="true" (onLazyLoad)="loadCompras($event)"
+                [paginator]="true" [rows]="rows" [totalRecords]="totalRecords" [loading]="loading"
+                [rowsPerPageOptions]="rowsPerPageOptions" [showCurrentPageReport]="true"
+                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} compras"
+                dataKey="id">
+                
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
+                        <th pSortableColumn="numeroComprobante">Comprobante <p-sortIcon field="numeroComprobante"></p-sortIcon></th>
+                        <th pSortableColumn="proveedor">Proveedor <p-sortIcon field="proveedor"></p-sortIcon></th>
+                        <th pSortableColumn="createdAt">Fecha <p-sortIcon field="createdAt"></p-sortIcon></th>
+                        <th pSortableColumn="total">Total <p-sortIcon field="total"></p-sortIcon></th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </ng-template>
+
+                <ng-template pTemplate="body" let-compra>
+                    <tr>
+                        <td>{{compra.id}}</td>
+                        <td>{{compra.numeroComprobante}}</td>
+                        <td>{{compra.proveedor}}</td>
+                        <td>{{compra.createdAt | date:'short'}}</td>
+                        <td class="font-bold text-right">{{compra.total | currency:'PEN':'S/ '}}</td>
+                        <td><span [class]="'product-badge status-' + (compra.estado ? compra.estado.toLowerCase() : '')">{{compra.estado}}</span></td>
+                        <td>
+                            <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editCompra(compra)"></button>
+                            <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteCompra(compra)"></button>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="compraDialog" [style]="{width: '900px'}" header="Detalle de Compra" [modal]="true" styleClass="p-fluid">
+            <ng-template pTemplate="content">
+                
+                <div [formGroup]="form" class="grid formgrid">
+                    <div class="field col-12 md:col-6">
+                        <label for="proveedor">Proveedor</label>
+                        <p-select id="proveedor" [options]="proveedores" formControlName="idProveedor" 
+                            optionLabel="razonSocial" optionValue="id" placeholder="Seleccione un Proveedor"
+                            [ngClass]="{'ng-invalid ng-dirty': form.controls['idProveedor'].invalid && form.controls['idProveedor'].touched}"></p-select>
+                        <small class="p-error" *ngIf="form.controls['idProveedor'].invalid && form.controls['idProveedor'].touched">Requerido.</small>
+                    </div>
+                    
+                    <div class="field col-12 md:col-3">
+                        <label for="nro">N° Comprobante</label>
+                        <input type="text" pInputText id="nro" formControlName="numeroComprobante"/>
+                    </div>
+
+                    <div class="field col-12 md:col-3">
+                        <label for="estado">Estado</label>
+                        <input type="text" pInputText id="estado" formControlName="estado" readonly/>
+                    </div>
+
+                    <div class="field col-12">
+                        <label for="desc">Descripción</label>
+                        <textarea pInputTextarea id="desc" formControlName="descripcion" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <p-divider align="left"><b>Items de la Compra</b></p-divider>
+
+                <div [formGroup]="detalleForm" class="grid formgrid p-3 surface-ground border-round mb-3">
+                    <div class="field col-12 md:col-4">
+                        <label>Producto</label>
+                        <p-select [options]="productos" formControlName="producto" optionLabel="nombre" 
+                        (onChange)="onProductoChange($event)" placeholder="Buscar producto..." [filter]="true">
+                    </p-select>
+                    </div>
+
+                    <div class="field col-12 md:col-3">
+                        <label>Presentación</label>
+                        <p-select [options]="presentacionesFiltradas" formControlName="presentacion" optionLabel="nombre" 
+                            placeholder="(Opcional)"></p-select>
+                    </div>
+
+                    <div class="field col-6 md:col-2">
+                        <label>Cantidad</label>
+                        <p-inputNumber formControlName="cantidad" [min]="1" [showButtons]="true"></p-inputNumber>
+                    </div>
+
+                    <div class="field col-6 md:col-2">
+                        <label>P. Unitario</label>
+                        <p-inputNumber formControlName="precioUnitario" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
+                    </div>
+
+                    <div class="field col-12 md:col-1 flex align-items-end">
+                        <button pButton icon="pi pi-plus" class="p-button-primary" 
+                            [disabled]="detalleForm.invalid" (click)="agregarDetalle()"></button>
+                    </div>
+                </div>
+
+                <p-table [value]="detallesActuales" responsiveLayout="scroll" styleClass="p-datatable-sm">
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th>Producto</th>
+                            <th>Presentación</th>
+                            <th class="text-right">Cant.</th>
+                            <th class="text-right">P. Unit</th>
+                            <th class="text-right">Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-det let-i="rowIndex">
+                        <tr>
+                            <td>{{det.nombreProducto}}</td>
+                            <td>{{det.nombrePresentacion}}</td>
+                            <td class="text-right">{{det.cantidad}}</td>
+                            <td class="text-right">{{det.precioUnitario | currency:'PEN':'S/ '}}</td>
+                            <td class="text-right font-bold">{{det.subtotal | currency:'PEN':'S/ '}}</td>
+                            <td class="text-center">
+                                <button pButton icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-text" 
+                                    (click)="eliminarDetalle(i)"></button>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="footer">
+                        <tr>
+                            <td colspan="4" class="text-right font-bold text-xl">TOTAL:</td>
+                            <td class="text-right font-bold text-xl">{{ calcularTotalCompra() | currency:'PEN':'S/ ' }}</td>
+                            <td></td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+
+            </ng-template>
+
+            <ng-template pTemplate="footer">
+                <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="compraDialog = false"></button>
+                <button pButton label="Guardar Compra" icon="pi pi-check" class="p-button-text" (click)="saveCompra()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="deleteCompraDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem"></i>
+                <span *ngIf="compra">¿Eliminar la compra <b>{{compra.numeroComprobante}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton label="No" icon="pi pi-times" class="p-button-text" (click)="deleteCompraDialog = false"></button>
+                <button pButton label="Sí" icon="pi pi-check" class="p-button-text" (click)="confirmDelete()"></button>
+            </ng-template>
+        </p-dialog>
+    </div>
+</div>

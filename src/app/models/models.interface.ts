@@ -69,6 +69,131 @@ export interface UsuarioResponse {
   idEmpresa?: number;
 }
 
+export interface CategoriaProdRequest {
+  nombre: string;
+}
+
+export interface CategoriaProdResponse {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+  nombre: string;
+}
+
+export interface RecetaItemRequest {
+  insumoId: number;
+  cantidadUsada: number;
+}
+
+export interface RecetaItemResponse {
+  id: number;
+  idInsumo: number;
+  insumoNombre: string;
+  unidadBase: string;
+  cantidadUsada: number;
+}
+
+export interface ProductoRequest {
+  nombre: string;
+  seVende: boolean;
+  precioUnitarioVenta: number;
+  unidadBase: string;
+  idCategoria: number;
+  receta: RecetaItemRequest[];
+}
+
+export interface ProductoResponse {
+  id: number;
+  updatedAt: Date;
+  nombre: string;
+  seVende: boolean;
+  precioUnitarioVenta: number;
+  unidadBase: string;
+  categoria: string;
+  receta: RecetaItemResponse[];
+}
+
+export interface PresentacionProdRequest {
+  nombre: string;
+  factor: number;
+  precioVenta: number;
+  idProducto: number;
+}
+
+export interface PresentacionProdResponse {
+  id: number;
+  createdAt: Date;
+  nombre: string;
+  factor: number;
+  precioVenta: number;
+  nombreProd: string;
+}
+
+export interface StockProdRequest {
+  idProducto: number;
+  idSucursal: number;
+  cantidad: number;
+}
+
+export interface StockProdResponse {
+  id: number;
+  updatedAt: Date;
+  nombreProducto: string;
+  unidadMedida: string;
+  nombreSucursal: string;
+  cantidadActual: number;
+}
+
+export interface ProveedorRequest {
+  razonSocial: string;
+  ruc: string;
+  telefono: string;
+}
+
+export interface ProveedorResponse {
+  id: number;
+  razonSocial: string;
+  ruc: string;
+  telefono: string;
+}
+
+export interface DetCompraRequest {
+  cantidad: number;
+  precioUnitario: number;
+  idPresentacion: number;
+  idProducto: number;
+}
+
+export interface DetCompraResponse {
+  id: number;
+  idProducto: number;
+  nombreProducto: string;
+  idPresentacion: number;
+  nombrePresentacion: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+export interface CompraRequest {
+  descripcion: string;
+  numeroComprobante: string;
+  estado: string;
+  idProveedor: number;
+  detalles: DetCompraRequest[];
+}
+
+export interface CompraResponse {
+  id: number;
+  createdAt: string;
+  descripcion: string;
+  numeroComprobante: string;
+  total: number;
+  estado: string;
+  proveedor: string;
+  detalles: DetCompraResponse[];
+}
+
 export interface Page<T> {
     content: T[];
     totalPages: number;

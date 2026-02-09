@@ -1,12 +1,12 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { SharedModule } from '../../../shared/shared.module';
-import { UsuarioResponse, UsuarioRequest, SucursalResponse, EmpresaResponse } from '../../../models/models.interface'; // Asegúrate de tener estas interfaces
+import { SharedModule } from '../../../../shared/shared.module';
+import { UsuarioResponse, UsuarioRequest, SucursalResponse, EmpresaResponse } from '../../../../models/models.interface'; // Asegúrate de tener estas interfaces
 import { MessageService } from 'primeng/api';
-import { UsuarioService } from '../../../services/usuario.service';
-import { SucursalService } from '../../../services/sucursal.service';
+import { UsuarioService } from '../../../../services/usuario.service';
+import { SucursalService } from '../../../../services/sucursal.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EmpresaService } from '../../../services/empresa.service';
+import { EmpresaService } from '../../../../services/empresa.service';
 
 @Component({
   selector: 'app-listausuarios',
@@ -186,23 +186,37 @@ export class Listausuarios implements OnInit {
     });
   }
 
-loadUsuarios(event: any) {
+  loadUsuarios(event: any) {
     this.loading = true;
     const first = event?.first ?? 0;
     const rows = event?.rows ?? 10;
     const page = first / rows;
     const size = rows;
 
-    // JERARQUÍA DE FILTROS
+    // --- LÓGICA DE ORDENAMIENTO ---
+    let sortStr = '';
+    if (event.sortField) {
+        // PrimeNG: 1 = Ascendente, -1 = Descendente
+        const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
+        sortStr = `${event.sortField},${sortOrder}`;
+    }
+    // ------------------------------
+
+    // JERARQUÍA DE FILTROS + ORDENAMIENTO
     if (this.selectedSucursal) {
-        // 1. Si hay Sucursal seleccionada -> Filtrar por Sucursal
-        this.usuarioService.listarPorSucursal(this.selectedSucursal, page, size).subscribe(this.processData());
+        // 1. Filtrar por Sucursal
+        this.usuarioService.listarPorSucursal(this.selectedSucursal, page, size, sortStr)
+            .subscribe(this.processData());
+
     } else if (this.selectedEmpresa) {
-        // 2. Si hay Empresa seleccionada (y no sucursal) -> Filtrar por Empresa
-        this.usuarioService.listarPorEmpresa(this.selectedEmpresa, page, size).subscribe(this.processData());
+        // 2. Filtrar por Empresa
+        this.usuarioService.listarPorEmpresa(this.selectedEmpresa, page, size, sortStr)
+            .subscribe(this.processData());
+
     } else {
-        // 3. Nada seleccionado -> Listar Todos
-        this.usuarioService.listarTodos(page, size).subscribe(this.processData());
+        // 3. Listar Todos
+        this.usuarioService.listarTodos(page, size, sortStr)
+            .subscribe(this.processData());
     }
   }
 

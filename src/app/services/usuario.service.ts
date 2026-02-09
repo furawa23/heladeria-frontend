@@ -25,29 +25,41 @@ export class UsuarioService {
   }
 
   // 3. Listar todos (Paginado)
-  listarTodos(page: number = 0, size: number = 10): Observable<Page<UsuarioResponse>> {
+  listarTodos(page: number = 0, size: number = 10, sort: string = ''): Observable<Page<UsuarioResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
+
+      if (sort) {
+        params = params.set('sort', sort);
+      }
 
     return this.http.get<Page<UsuarioResponse>>(this.apiUrl, { params });
   }
 
   // 4. Listar por Sucursal
-  listarPorSucursal(idSucursal: number, page: number = 0, size: number = 10): Observable<Page<UsuarioResponse>> {
+  listarPorSucursal(idSucursal: number, page: number = 0, size: number = 10, sort: string = ''): Observable<Page<UsuarioResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
+
+      if (sort) {
+        params = params.set('sort', sort);
+      }
 
     return this.http.get<Page<UsuarioResponse>>(`${this.apiUrl}/sucursal/${idSucursal}`, { params });
   }
 
   // 5. Listar por Empresa
-  listarPorEmpresa(idEmpresa: number, page: number = 0, size: number = 10): Observable<Page<UsuarioResponse>> {
+  listarPorEmpresa(idEmpresa: number, page: number = 0, size: number = 10, sort: string = ''): Observable<Page<UsuarioResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
 
+      if (sort) {
+        params = params.set('sort', sort);
+      }
+      
     return this.http.get<Page<UsuarioResponse>>(`${this.apiUrl}/empresa/${idEmpresa}`, { params });
   }
 

@@ -19,6 +19,8 @@ import { MessageModule } from 'primeng/message';
 import { AppFloatingConfigurator } from '../layout/component/app.floatingconfigurator';
 import { PasswordModule } from 'primeng/password';
 import { CheckboxModule } from 'primeng/checkbox';
+import { DividerModule } from 'primeng/divider';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 
 @NgModule({
   imports: [
@@ -41,7 +43,10 @@ import { CheckboxModule } from 'primeng/checkbox';
     ReactiveFormsModule,
     MessageModule,
     AppFloatingConfigurator,
-    PasswordModule
+    PasswordModule,
+    CheckboxModule,
+    DividerModule,
+    ToggleSwitchModule
   ],
   exports: [
     CommonModule,
@@ -63,7 +68,10 @@ import { CheckboxModule } from 'primeng/checkbox';
     ReactiveFormsModule,
     MessageModule,
     AppFloatingConfigurator,
-    PasswordModule
+    PasswordModule,
+    CheckboxModule,
+    DividerModule,
+    ToggleSwitchModule
   ]
 })
 export class SharedModule {}

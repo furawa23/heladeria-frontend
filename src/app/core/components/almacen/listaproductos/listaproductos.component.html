@@ -1,0 +1,308 @@
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-6">
+            <p-toast></p-toast>
+            
+            <p-toolbar styleClass="mb-4">
+                <ng-template pTemplate="left">
+                    <div class="my-2">
+                        <button pButton pRipple label="Nuevo Producto" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                    </div>
+                </ng-template>
+            </p-toolbar>
+
+            <p-table #dt [value]="productos" 
+                dataKey="id" 
+                [lazy]="true"
+                expandableRows="true"
+                (onLazyLoad)="loadProductos($event)"
+                (onRowExpand)="onRowExpand($event)"
+                [paginator]="true" 
+                [rows]="rows" 
+                [totalRecords]="totalRecords" 
+                [loading]="loading" 
+                [rowsPerPageOptions]="rowsPerPageOptions"
+                [showCurrentPageReport]="true" 
+                currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} productos"
+                [rowHover]="true">
+
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th style="width: 3rem"></th> <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
+                        <th pSortableColumn="categoria">Categoría <p-sortIcon field="categoria"></p-sortIcon></th>
+                        <th pSortableColumn="unidadBase">Unidad <p-sortIcon field="unidadBase"></p-sortIcon></th>
+                        <th pSortableColumn="seVende">Tipo <p-sortIcon field="seVende"></p-sortIcon></th>
+                        <th pSortableColumn="precioUnitarioVenta">Precio <p-sortIcon field="precioUnitarioVenta"></p-sortIcon></th>
+                        <th>Acciones</th>
+                    </tr>
+                </ng-template>
+
+                <ng-template pTemplate="body" let-product let-expanded="expanded">
+                    <tr>
+                        <td>
+                            <button type="button" pButton pRipple [pRowToggler]="product" 
+                                class="p-button-text p-button-rounded p-button-plain" 
+                                [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
+                            </button>
+                        </td>
+                        <td><span class="font-bold">{{product.nombre}}</span></td>
+                        <td>{{product.categoria}}</td>
+                        <td>{{product.unidadBase}}</td>
+                        <td>
+                            <p-tag [severity]="product.seVende ? 'success' : 'info'" 
+                                   [value]="product.seVende ? 'Venta' : 'Insumo'" 
+                                   [rounded]="true">
+                            </p-tag>
+                        </td>
+                        <td>
+                            <span *ngIf="product.seVende">{{product.precioUnitarioVenta | currency:'PEN':'symbol-narrow'}}</span>
+                            <span *ngIf="!product.seVende" class="text-500">-</span>
+                        </td>
+                        <td>
+                            <div class="flex">
+                                <button pButton pRipple icon="pi pi-box" 
+                                    class="p-button-rounded p-button-info mr-2" 
+                                    pTooltip="Gestionar Presentaciones" 
+                                    tooltipPosition="top"
+                                    (click)="openPresentaciones(product)">
+                                </button>
+                                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editProducto(product)"></button>
+                                <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteProducto(product)"></button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template pTemplate="rowexpansion" let-product>
+                    <tr>
+                        <td colspan="7">
+                            <div class="p-3">
+                                <span class="font-bold text-xl block mb-3">Stock Actual de: {{product.nombre}}</span>
+                                
+                                <p-table [value]="stockCache[product.id]" dataKey="id">
+                                    <ng-template pTemplate="header">
+                                        <tr>
+                                            <th>Sucursal</th>
+                                            <th>Cantidad Actual</th>
+                                            <th>Unidad</th>
+                                            <th>Última Actualización</th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="body" let-stock>
+                                        <tr>
+                                            <td>{{stock.nombreSucursal}}</td>
+                                            <td class="font-bold" [ngClass]="{'text-red-500': stock.cantidadActual <= 0, 'text-green-500': stock.cantidadActual > 0}">
+                                                {{stock.cantidadActual}}
+                                            </td>
+                                            <td>{{stock.unidadMedida}}</td>
+                                            <td>{{stock.updatedAt | date:'medium'}}</td>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="emptymessage">
+                                        <tr>
+                                            <td colspan="4">No hay registros de stock o cargando...</td>
+                                        </tr>
+                                    </ng-template>
+                                </p-table>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="productoDialog" [style]="{width: '600px'}" header="Detalles del Producto" [modal]="true" styleClass="p-fluid">
+            <ng-template pTemplate="content">
+                <div [formGroup]="form">
+                    
+                    <div class="formgrid grid">
+                        <div class="field col-12 md:col-8">
+                            <label for="nombre" class="font-bold">Nombre del Producto</label>
+                            <input type="text" pInputText id="nombre" formControlName="nombre" 
+                                   [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['nombre'].invalid}"/>
+                            <small class="p-error" *ngIf="submitted && form.controls['nombre'].invalid">Nombre requerido.</small>
+                        </div>
+                        <div class="field col-12 md:col-4">
+                            <label for="unidadBase" class="font-bold">Unidad Base</label>
+                            <input type="text" pInputText id="unidadBase" formControlName="unidadBase" placeholder="Ej. UNIDAD, KG, LT"/>
+                            <small class="p-error" *ngIf="submitted && form.controls['unidadBase'].invalid">Requerido.</small>
+                        </div>
+                    </div>
+
+                    <div class="formgrid grid">
+                        <div class="field col-12 md:col-6">
+                            <label for="categoria" class="font-bold">Categoría</label>
+                            <p-select [options]="categorias" formControlName="idCategoria" 
+                                        optionLabel="nombre" optionValue="id" 
+                                        placeholder="Seleccione una categoría"
+                                        [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idCategoria'].invalid}">
+                            </p-select>
+                            <small class="p-error" *ngIf="submitted && form.controls['idCategoria'].invalid">Categoría requerida.</small>
+                        </div>
+                        
+                        <div class="field col-12 md:col-6 flex flex-column">
+                            <label class="font-bold mb-2">¿Es para Venta?</label>
+                            <div class="flex align-items-center h-full">
+                                <p-toggleswitch formControlName="seVende"></p-toggleswitch>
+                                <span class="ml-2">{{ form.get('seVende')?.value ? 'Sí, se vende al público' : 'No, es insumo interno' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field" *ngIf="form.get('seVende')?.value">
+                        <label for="precio" class="font-bold">Precio de Venta</label>
+                        <p-inputNumber id="precio" formControlName="precioUnitarioVenta" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
+                        <small class="p-error" *ngIf="submitted && form.controls['precioUnitarioVenta'].invalid">El precio es requerido para productos de venta.</small>
+                    </div>
+
+                    <p-divider></p-divider>
+
+                    <div class="flex justify-content-between align-items-center mb-3">
+                        <span class="font-bold text-lg">Receta / Insumos</span>
+                        <button pButton pRipple label="Agregar Insumo" icon="pi pi-plus" class="p-button-sm p-button-outlined" (click)="addRecetaItem()"></button>
+                    </div>
+
+                    <div formArrayName="receta">
+                        <div *ngFor="let item of recetaArray.controls; let i=index" [formGroupName]="i" class="formgrid grid align-items-end mb-2">
+                            
+                            <div class="field col-7 mb-0">
+                                <label *ngIf="i===0">Insumo</label>
+                                <p-select [options]="insumosDisponibles" formControlName="insumoId" 
+                                            optionLabel="nombre" optionValue="id" 
+                                            placeholder="Buscar insumo..." [filter]="true" filterBy="nombre"
+                                            appendTo="body">
+                                </p-select>
+                            </div>
+                            
+                            <div class="field col-3 mb-0">
+                                <label *ngIf="i===0">Cantidad</label>
+                                <p-inputNumber formControlName="cantidadUsada" [minFractionDigits]="2" suffix=" u."></p-inputNumber>
+                            </div>
+
+                            <div class="field col-2 mb-0">
+                                <button pButton pRipple icon="pi pi-trash" class="p-button-danger p-button-text" (click)="removeRecetaItem(i)"></button>
+                            </div>
+                        </div>
+                        
+                        <div *ngIf="recetaArray.length === 0" class="text-center text-500 py-2 bg-gray-50 border-round">
+                            <small>No hay insumos agregados a la receta.</small>
+                        </div>
+                    </div>
+
+                </div>
+            </ng-template>
+
+            <ng-template pTemplate="footer">
+                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
+                <button pButton pRipple label="Guardar Producto" icon="pi pi-check" class="p-button-text" (click)="saveProducto()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="deleteProductoDialog" header="Confirmar Eliminación" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)"></i>
+                <span *ngIf="producto">¿Estás seguro de eliminar el producto <b>{{producto.nombre}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteProductoDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text p-button-danger" label="Sí, Eliminar" (click)="confirmDelete()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span>¿Estás seguro de guardar los cambios en el producto?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
+            </ng-template>
+        </p-dialog>
+        <p-dialog [(visible)]="presentacionesDialog" 
+          [style]="{width: '650px'}" 
+          [header]="'Presentaciones: ' + productoSeseleccionadoParaPresentacion?.nombre" 
+          [modal]="true" 
+          styleClass="p-fluid"
+          appendTo="body"> 
+            
+            <ng-template pTemplate="content">
+        
+                <div class="card p-3 mb-3 bg-gray-50" [formGroup]="formPresentacion">
+                    <span class="font-bold block mb-2 text-primary">Agregar Nueva Presentación</span>
+                    
+                    <div class="formgrid grid align-items-end">
+                        
+                        <div [class]="productoSeseleccionadoParaPresentacion.seVende ? 'field col-4 mb-0' : 'field col-7 mb-0'">
+                            <label>Nombre (ej. Caja x12)</label>
+                            <input type="text" pInputText formControlName="nombre" placeholder="Nombre">
+                        </div>
+
+                        <div class="field col-3 mb-0">
+                            <label>Factor (Unidades)</label>
+                            <p-inputNumber formControlName="factor" [min]="1" placeholder="Cant."></p-inputNumber>
+                        </div>
+                        
+                        <div class="field col-3 mb-0" *ngIf="productoSeseleccionadoParaPresentacion.seVende">
+                            <label for="precioVenta" class="font-bold">P. Venta</label>
+                            <p-inputNumber id="precioVenta" formControlName="precioVenta" 
+                                           mode="currency" currency="PEN" locale="es-PE" 
+                                           placeholder="S/ 0.00">
+                            </p-inputNumber>
+                        </div>
+
+                        <div class="field col-2 mb-0">
+                            <button pButton icon="pi pi-plus" label="Add" 
+                                    class="p-button-sm" 
+                                    [disabled]="formPresentacion.invalid"
+                                    (click)="agregarPresentacion()">
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <small class="block mt-2 text-500">
+                        * Factor: Cantidad de unidades base que contiene esta presentación.
+                    </small>
+                </div>
+
+                <p-table [value]="listaPresentaciones" [rowHover]="true" styleClass="p-datatable-sm">
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th>Nombre</th>
+                            <th class="text-center">Factor</th>
+                            <th class="text-center" *ngIf="productoSeseleccionadoParaPresentacion.seVende">P. Venta</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-pres>
+                        <tr>
+                            <td>{{pres.nombre}}</td>
+                            <td class="text-center font-bold">{{pres.factor}}</td>
+                            <td class="text-center font-bold" *ngIf="productoSeseleccionadoParaPresentacion.seVende">
+                                {{pres.precioVenta | currency:'PEN':'symbol-narrow'}}
+                            </td>
+                            <td class="text-center">
+                                <button pButton pRipple icon="pi pi-trash" 
+                                        class="p-button-rounded p-button-danger p-button-text p-button-sm" 
+                                        (click)="borrarPresentacion(pres)">
+                                </button>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="emptymessage">
+                        <tr>
+                            <td [attr.colspan]="productoSeseleccionadoParaPresentacion.seVende ? 4 : 3" class="text-center p-3 text-500">
+                                No hay presentaciones adicionales registradas.
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+
+            </ng-template>
+
+            <ng-template pTemplate="footer">
+                <button pButton pRipple label="Cerrar" icon="pi pi-check" class="p-button-text" (click)="presentacionesDialog = false"></button>
+            </ng-template>
+        </p-dialog>
+    </div>
+</div>

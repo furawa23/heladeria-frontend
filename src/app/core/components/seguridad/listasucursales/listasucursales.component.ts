@@ -1,9 +1,9 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { SharedModule } from '../../../shared/shared.module';
-import { SucursalResponse, SucursalRequest, EmpresaResponse } from '../../../models/models.interface';
+import { SharedModule } from '../../../../shared/shared.module';
+import { SucursalResponse, SucursalRequest, EmpresaResponse } from '../../../../models/models.interface';
 import { MessageService } from 'primeng/api';
-import { SucursalService } from '../../../services/sucursal.service';
-import { EmpresaService } from '../../../services/empresa.service';
+import { SucursalService } from '../../../../services/sucursal.service';
+import { EmpresaService } from '../../../../services/empresa.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
