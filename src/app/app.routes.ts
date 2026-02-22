@@ -9,6 +9,7 @@ import { ListaCategoriasProducto } from './core/components/almacen/listacategori
 import { ListaProductos } from './core/components/almacen/listaproductos/listaproductos.component';
 import { ListaProveedores } from './core/components/compra/listaproveedores/listaproveedores.component';
 import { ListaCompras } from './core/components/compra/listacompras/listacompras.component';
+import { ListaMesas } from './core/components/venta/listamesas/listamesas.component';
 
 export const routes: Routes = [
     // 1. RUTA PÚBLICA (Login)
@@ -54,6 +55,10 @@ export const routes: Routes = [
             {
                 path: 'compras',
                 component: ListaCompras,
+            },
+            {
+                path: 'mesas',
+                component: ListaMesas,
             }
         ]
     },

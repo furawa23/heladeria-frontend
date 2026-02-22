@@ -194,6 +194,18 @@ export interface CompraResponse {
   detalles: DetCompraResponse[];
 }
 
+export interface MesaRequest {
+  numero: number;
+  idSucursal: number;
+}
+
+export interface MesaResponse {
+  id: number;
+  numero: number;
+  libre: boolean;
+  nombreSucursal: string;
+}
+
 export interface Page<T> {
     content: T[];
     totalPages: number;
