@@ -12,39 +12,44 @@
             </p-toolbar>
 
             <p-table #dt [value]="productos" 
-                dataKey="id" 
-                [lazy]="true"
-                expandableRows="true"
-                (onLazyLoad)="loadProductos($event)"
-                (onRowExpand)="onRowExpand($event)"
-                [paginator]="true" 
-                [rows]="rows" 
-                [totalRecords]="totalRecords" 
-                [loading]="loading" 
-                [rowsPerPageOptions]="rowsPerPageOptions"
-                [showCurrentPageReport]="true" 
-                currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} productos"
-                [rowHover]="true">
+            dataKey="id" 
+            expandableRows="true" 
+            [lazy]="true"
+            (onLazyLoad)="loadProductos($event)"
+            (onRowExpand)="onRowExpand($event)"
+            [paginator]="true" 
+            [rows]="rows" 
+            [totalRecords]="totalRecords" 
+            [loading]="loading" 
+            [rowsPerPageOptions]="rowsPerPageOptions"
+            [showCurrentPageReport]="true" 
+            currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} productos"
+            [rowHover]="true">
 
                 <ng-template pTemplate="header">
                     <tr>
-                        <th style="width: 3rem"></th> <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
+                        <th style="width: 3rem" *ngIf="!esEmpleado"></th> 
+                        <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
                         <th pSortableColumn="categoria">Categoría <p-sortIcon field="categoria"></p-sortIcon></th>
                         <th pSortableColumn="unidadBase">Unidad <p-sortIcon field="unidadBase"></p-sortIcon></th>
                         <th pSortableColumn="seVende">Tipo <p-sortIcon field="seVende"></p-sortIcon></th>
                         <th pSortableColumn="precioUnitarioVenta">Precio <p-sortIcon field="precioUnitarioVenta"></p-sortIcon></th>
+                        
+                        <th *ngIf="esEmpleado" pSortableColumn="stock">Stock <p-sortIcon field="stock"></p-sortIcon></th>
+                        
                         <th>Acciones</th>
                     </tr>
                 </ng-template>
 
                 <ng-template pTemplate="body" let-product let-expanded="expanded">
                     <tr>
-                        <td>
+                        <td *ngIf="!esEmpleado">
                             <button type="button" pButton pRipple [pRowToggler]="product" 
                                 class="p-button-text p-button-rounded p-button-plain" 
                                 [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
                             </button>
                         </td>
+                        
                         <td><span class="font-bold">{{product.nombre}}</span></td>
                         <td>{{product.categoria}}</td>
                         <td>{{product.unidadBase}}</td>
@@ -58,6 +63,13 @@
                             <span *ngIf="product.seVende">{{product.precioUnitarioVenta | currency:'PEN':'symbol-narrow'}}</span>
                             <span *ngIf="!product.seVende" class="text-500">-</span>
                         </td>
+
+                        <td *ngIf="esEmpleado">
+                            <span class="font-bold" [ngClass]="{'text-red-500': product.stock <= 0, 'text-green-500': product.stock > 0}">
+                                {{product.stock || 0}}
+                            </span>
+                        </td>
+
                         <td>
                             <div class="flex">
                                 <button pButton pRipple icon="pi pi-box" 
@@ -73,7 +85,7 @@
                     </tr>
                 </ng-template>
 
-                <ng-template pTemplate="rowexpansion" let-product>
+                <ng-template #expandedrow let-product>
                     <tr>
                         <td colspan="7">
                             <div class="p-3">
@@ -100,7 +112,7 @@
                                     </ng-template>
                                     <ng-template pTemplate="emptymessage">
                                         <tr>
-                                            <td colspan="4">No hay registros de stock o cargando...</td>
+                                            <td colspan="4" class="text-center py-4">No hay registros de stock o está cargando...</td>
                                         </tr>
                                     </ng-template>
                                 </p-table>
@@ -153,6 +165,12 @@
                         <label for="precio" class="font-bold">Precio de Venta</label>
                         <p-inputNumber id="precio" formControlName="precioUnitarioVenta" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
                         <small class="p-error" *ngIf="submitted && form.controls['precioUnitarioVenta'].invalid">El precio es requerido para productos de venta.</small>
+                    </div>
+
+                    <div class="field" *ngIf="esEmpleado && !producto.id">
+                        <label for="stock" class="font-bold text-primary">Stock Inicial en tu Sucursal (Opcional)</label>
+                        <p-inputNumber id="stock" formControlName="stock" [min]="0" suffix=" u."></p-inputNumber>
+                        <small class="block mt-1 text-500">Deja en 0 si no deseas ingresar stock en este momento.</small>
                     </div>
 
                     <p-divider></p-divider>
@@ -219,6 +237,7 @@
                 <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
             </ng-template>
         </p-dialog>
+
         <p-dialog [(visible)]="presentacionesDialog" 
           [style]="{width: '650px'}" 
           [header]="'Presentaciones: ' + productoSeseleccionadoParaPresentacion?.nombre" 

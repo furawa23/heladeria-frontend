@@ -100,6 +100,7 @@ export interface ProductoRequest {
   unidadBase: string;
   idCategoria: number;
   receta: RecetaItemRequest[];
+  stock: number
 }
 
 export interface ProductoResponse {
@@ -111,6 +112,7 @@ export interface ProductoResponse {
   unidadBase: string;
   categoria: string;
   receta: RecetaItemResponse[];
+  stock: number
 }
 
 export interface PresentacionProdRequest {
@@ -204,6 +206,49 @@ export interface MesaResponse {
   numero: number;
   libre: boolean;
   nombreSucursal: string;
+}
+
+export interface DetVentaRequest {
+  cantidad: number,
+  precioUnitario: number,
+  idPresentacion: number,
+  idProducto: number
+}
+
+export interface DetVentaRequest {
+  cantidad: number,
+  precioUnitario: number,
+  idPresentacion: number,
+  idProducto: number
+}
+
+export interface DetVentaResponse {
+  id: number,
+  idProducto: number,
+  nombreProducto: string,
+  idPresentacion: number,
+  nombrePresentacion: string,
+  cantidad: number,
+  precioUnitario: number,
+  subtotal: number
+}
+
+export interface VentaRequest {
+  numeroComprobante: string,
+  total: number,
+  estado: string,
+  idMesa?: number,
+  detalles: DetVentaRequest[]
+}
+
+export interface VentaResponse {
+  id: number,
+  createdAt: Date,
+  numeroComprobante: string,
+  total: number,
+  estado: string,
+  numeroMesa: number,
+  detalles: DetVentaResponse[]
 }
 
 export interface Page<T> {

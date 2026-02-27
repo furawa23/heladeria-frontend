@@ -8,6 +8,7 @@ import { SharedModule } from '../../../../shared/shared.module';
 import { ProductoService } from '../../../../services/producto.service';
 import { StockProductoService } from '../../../../services/stockproducto.service';
 import { CategoriaProductoService } from '../../../../services/catproducto.service';
+import { PresentacionProductoService } from '../../../../services/presproducto.service';
 
 // Interfaces
 import { 
@@ -19,7 +20,7 @@ import {
   PresentacionProdResponse,
   PresentacionProdRequest
 } from '../../../../models/models.interface';
-import { PresentacionProductoService } from '../../../../services/presproducto.service';
+
 
 @Component({
   selector: 'app-lista-productos',
@@ -38,9 +39,12 @@ export class ListaProductos implements OnInit {
   submitted: boolean = false;
   loading: boolean = true;
 
+  // NUEVA BANDERA PARA ROL
+  esEmpleado: boolean = false;
+
   // --- Data Sources ---
   productos: ProductoResponse[] = [];
-  producto!: ProductoResponse; // Producto seleccionado para acciones
+  producto!: ProductoResponse; 
   
   // Listas auxiliares para Dropdowns
   categorias: CategoriaProdResponse[] = [];
@@ -57,7 +61,6 @@ export class ListaProductos implements OnInit {
   rowsPerPageOptions = [5, 10, 20];
 
   // --- Row Expansion (Stock) ---
-  // Cache para evitar llamadas repetidas al API al abrir/cerrar la misma fila
   stockCache: { [idProducto: number]: StockProdResponse[] } = {}; 
   expandedRowKeys: { [key: string]: boolean } = {};
 
@@ -76,11 +79,27 @@ export class ListaProductos implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    
+    // AQUÍ DETERMINAMOS EL ROL BASADO EN EL ID_SUCURSAL
+    const authData = localStorage.getItem('auth'); 
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        // Según tu interfaz, un Usuario tiene idSucursal si es empleado
+        this.esEmpleado = parsed.usuario?.idSucursal != null;
+      } catch (e) {
+        this.esEmpleado = false;
+      }
+    } else {
+      this.esEmpleado = false;
+    }
+
     this.initForm();
     this.cargarDatosAuxiliares();
     this.formPresentacion = this.fb.group({
       nombre: ['', Validators.required],
-      factor: [1, [Validators.required, Validators.min(1)]] // Factor de conversión
+      factor: [1, [Validators.required, Validators.min(1)]],
+      precioVenta: [null]
     });
   }
 
@@ -89,13 +108,11 @@ export class ListaProductos implements OnInit {
   // ==========================================================
 
   cargarDatosAuxiliares() {
-    // 1. Cargar Categorías para el dropdown del formulario
     this.categoriaService.listarTodas(0, 100).subscribe({
       next: (resp) => this.categorias = resp.content,
       error: (err) => console.error('Error cargando categorías', err)
     });
 
-    // 2. Cargar Insumos para el autocompletado/dropdown de la receta
     this.productoService.listarInsumos(0, 100).subscribe({
       next: (resp) => this.insumosDisponibles = resp.content,
       error: (err) => console.error('Error cargando insumos', err)
@@ -107,7 +124,6 @@ export class ListaProductos implements OnInit {
     const page = (event?.first ?? 0) / (event?.rows ?? 10);
     const size = event?.rows ?? 10;
     
-    // Mapeo de sortField de PrimeNG a Spring Boot
     let sortStr = '';
     if (event.sortField) {
       const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
@@ -136,14 +152,14 @@ export class ListaProductos implements OnInit {
     this.form = this.fb.group({
       nombre: ['', Validators.required],
       unidadBase: ['UNIDAD', Validators.required],
-      idCategoria: [null, Validators.required], // Dropdown bindeará al ID
+      idCategoria: [null, Validators.required],
       seVende: [false],
       precioUnitarioVenta: [0],
-      receta: this.fb.array([]) // Array dinámico
+      receta: this.fb.array([]),
+      // Control para stock inicial
+      stock: [0, [Validators.min(0)]] 
     });
 
-    // Suscripción para validaciones dinámicas:
-    // Si 'seVende' es true, el precio es obligatorio.
     this.form.get('seVende')?.valueChanges.subscribe(seVende => {
       const precioControl = this.form.get('precioUnitarioVenta');
       if (seVende) {
@@ -173,17 +189,22 @@ export class ListaProductos implements OnInit {
   }
 
   // ==========================================================
-  // 3. LOGICA DE EXPANSIÓN (STOCK)
+  // 3. LOGICA DE EXPANSIÓN (STOCK DUEÑO)
   // ==========================================================
 
   onRowExpand(event: any) {
+    // Solo cargamos si es dueño (por seguridad)
+    if (this.esEmpleado) return;
+
     const prodId = event.data.id;
-    
-    // Solo cargamos si no está en caché
     if (!this.stockCache[prodId]) {
       this.stockService.listarPorProducto(prodId, 0, 50).subscribe({
         next: (resp) => {
-          this.stockCache[prodId] = resp.content;
+          // 1. Reasignamos el objeto completo para que Angular detecte el cambio (Inmutabilidad)
+          this.stockCache = { ...this.stockCache, [prodId]: resp.content };
+          
+          // 2. Le decimos explícitamente a Angular que redibuje la vista
+          this.cdr.detectChanges();
         },
         error: (err) => console.error(err)
       });
@@ -191,7 +212,7 @@ export class ListaProductos implements OnInit {
   }
 
   refreshTable() {
-    this.stockCache = {}; // Limpiamos caché por si hubo movimientos
+    this.stockCache = {}; 
     this.loadProductos({ first: 0, rows: this.rows });
   }
 
@@ -204,11 +225,12 @@ export class ListaProductos implements OnInit {
     this.submitted = false;
     this.productoDialog = true;
     
-    // Resetear form
+    // Resetear form (incluyendo stock en 0)
     this.form.reset({
       unidadBase: 'UNIDAD',
       seVende: false,
-      precioUnitarioVenta: 0
+      precioUnitarioVenta: 0,
+      stock: 0
     });
     this.recetaArray.clear();
     this.cdr.detectChanges();
@@ -218,8 +240,6 @@ export class ListaProductos implements OnInit {
     this.producto = { ...prod };
     this.productoDialog = true;
 
-    // Lógica para encontrar el ID de la categoría basado en el nombre
-    // Ya que ProductoResponse trae "categoria": "Helados" (string)
     const categoriaEncontrada = this.categorias.find(c => c.nombre === prod.categoria);
     const idCategoriaVal = categoriaEncontrada ? categoriaEncontrada.id : null;
 
@@ -228,10 +248,10 @@ export class ListaProductos implements OnInit {
       unidadBase: prod.unidadBase,
       idCategoria: idCategoriaVal, 
       seVende: prod.seVende,
-      precioUnitarioVenta: prod.precioUnitarioVenta
+      precioUnitarioVenta: prod.precioUnitarioVenta,
+      stock: 0 
     });
 
-    // Poblar Receta
     this.recetaArray.clear();
     if (prod.receta && prod.receta.length > 0) {
       prod.receta.forEach(item => {
@@ -242,7 +262,7 @@ export class ListaProductos implements OnInit {
     this.cdr.detectChanges();
   }
 
-// ==========================================================
+  // ==========================================================
   // LOGICA DE PRESENTACIONES
   // ==========================================================
 
@@ -251,27 +271,21 @@ export class ListaProductos implements OnInit {
     this.presentacionesDialog = true;
     this.cargarPresentaciones(prod.id);
     
-    // 1. Resetear el formulario primero
     this.formPresentacion.reset({
       nombre: '',
       factor: 1,
-      precioVenta: null // Empezamos en null
+      precioVenta: null 
     });
 
-    // 2. Obtener el control del precio
     const precioControl = this.formPresentacion.get('precioVenta');
 
-    // 3. Validación Condicional
     if (prod.seVende) {
-      // Si el producto padre se vende, la presentación TAMBIÉN necesita precio
       precioControl?.setValidators([Validators.required, Validators.min(0.1)]);
     } else {
-      // Si es un insumo, no lleva precio de venta
       precioControl?.clearValidators();
-      precioControl?.setValue(0); // Opcional: setear a 0 o null
+      precioControl?.setValue(0);
     }
     
-    // 4. Actualizar el estado del control para que Angular sepa si es válido o no
     precioControl?.updateValueAndValidity();
   }
 
@@ -299,9 +313,7 @@ export class ListaProductos implements OnInit {
     this.presentacionService.crear(nuevaPresentacion).subscribe({
       next: () => {
         this.messageService.add({severity:'success', summary:'Agregado', detail:'Presentación agregada'});
-        // Recargar la lista interna del modal
         this.cargarPresentaciones(this.productoSeseleccionadoParaPresentacion.id); 
-        // Resetear solo los inputs
         this.formPresentacion.reset({ nombre: '', factor: 1 });
       },
       error: () => this.messageService.add({severity:'error', summary:'Error', detail:'No se pudo agregar'})
@@ -309,7 +321,6 @@ export class ListaProductos implements OnInit {
   }
 
   borrarPresentacion(pres: PresentacionProdResponse) {
-    // Podrías poner un confirmDialog aquí si quieres
     this.presentacionService.eliminar(pres.id).subscribe({
       next: () => {
         this.messageService.add({severity:'success', summary:'Eliminado', detail:'Presentación eliminada'});
@@ -332,7 +343,6 @@ export class ListaProductos implements OnInit {
   confirmSave() {
     this.saveConfirmDialog = false;
 
-    // Preparar DTO
     const formVal = this.form.value;
     
     const recetaRequest: RecetaItemRequest[] = formVal.receta.map((item: any) => ({
@@ -346,7 +356,9 @@ export class ListaProductos implements OnInit {
       idCategoria: formVal.idCategoria,
       seVende: formVal.seVende,
       precioUnitarioVenta: formVal.precioUnitarioVenta,
-      receta: recetaRequest
+      receta: recetaRequest,
+      // Solo enviamos stock si NO tiene ID (es creación) y si ES empleado
+      stock: (!this.producto.id && this.esEmpleado) ? (formVal.stock || 0) : 0
     };
 
     if (this.producto.id) {
