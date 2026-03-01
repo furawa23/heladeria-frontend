@@ -7,7 +7,7 @@ import { VentaRequest, VentaResponse, Page } from '../models/models.interface';
 @Injectable({
   providedIn: 'root'
 })
-export class CompraService {
+export class VentaService {
 
   private apiUrl = `${environment.apiUrl}/ventas`; 
 
@@ -41,8 +41,8 @@ export class CompraService {
     return this.http.patch<void>(`${this.apiUrl}/${id}/cancelar`, {});
   }
 
-  confirmar(id: number): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/${id}/confirmar`, {});
+  cobrar(id: number): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/cobrar`, {});
   }
 
   eliminar(id: number): Observable<void> {

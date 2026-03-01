@@ -3,7 +3,6 @@ import { SharedModule } from '../../../../shared/shared.module';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 
-// IMPORTA TUS INTERFACES
 import { 
   CompraResponse, 
   CompraRequest, 
@@ -12,11 +11,10 @@ import {
   PresentacionProdResponse 
 } from '../../../../models/models.interface';
 
-// IMPORTA TUS SERVICIOS
 import { CompraService } from '../../../../services/compra.service';
 import { ProveedorService } from '../../../../services/proveedor.service';
 import { ProductoService } from '../../../../services/producto.service'; 
-import { PresentacionProductoService } from '../../../../services/presproducto.service'; // Asegúrate de que el nombre del archivo coincida
+import { PresentacionProductoService } from '../../../../services/presproducto.service';
 
 @Component({
   selector: 'app-listacompras',
@@ -30,28 +28,28 @@ import { PresentacionProductoService } from '../../../../services/presproducto.s
     ProveedorService, 
     ProductoService,            
     PresentacionProductoService 
-] 
+  ] 
 })
 export class ListaCompras implements OnInit {
 
-  // ... (Diálogos, variables, etc. igual que antes)
   compraDialog: boolean = false;
   deleteCompraDialog: boolean = false;
+  
+  // Nuevo diálogo para Confirmar/Cancelar
+  actionDialog: boolean = false;
+  actionType: 'CONFIRMAR' | 'CANCELAR' = 'CONFIRMAR';
+
   compras: CompraResponse[] = [];
   compra!: CompraResponse;
   
-  // Datos Auxiliares
   proveedores: ProveedorResponse[] = [];
   productos: ProductoResponse[] = [];             
-  // Ya no necesitamos 'presentaciones: any[] = []' global
   presentacionesFiltradas: PresentacionProdResponse[] = []; 
 
-  // Forms
   form!: FormGroup;        
   detalleForm!: FormGroup; 
   detallesActuales: any[] = []; 
 
-  // Paginación
   totalRecords: number = 0;
   loading: boolean = true;
   rows: number = 10;
@@ -89,31 +87,21 @@ export class ListaCompras implements OnInit {
   }
 
   loadAuxiliarData() {
-    // 1. Cargar Proveedores
     this.proveedorService.listarTodas(0, 1000).subscribe({
       next: (data) => this.proveedores = data.content
     });
 
-    // 2. Cargar Productos
     this.productoService.listarTodas(0, 1000).subscribe({
-      next: (data) => {
-        this.productos = data.content; 
-      },
+      next: (data) => this.productos = data.content,
       error: (err) => console.error("Error cargando productos", err)
     });
-    
-    // ¡¡Asegúrate de NO tener nada más aquí abajo llamando a presentacionService!!
   }
 
-  // Carga de Compras (Lazy Load)
   loadCompras(event: any) {
     this.loading = true;
-  
-    // 1. Uso de operador seguro (?.) para evitar error si event es null
     const page = (event?.first ?? 0) / (event?.rows ?? 10);
     const size = event?.rows ?? 10;
     
-    // 2. Validación crítica: Verificar si event existe antes de leer sortField
     let sortStr = '';
     if (event && event.sortField) {
         sortStr = `${event.sortField},${event.sortOrder === 1 ? 'asc' : 'desc'}`;
@@ -128,39 +116,27 @@ export class ListaCompras implements OnInit {
       },
       error: (err) => {
         console.error(err);
-        this.loading = false; // Importante: quitar el loading si falla
+        this.loading = false; 
       }
     });
   }
 
-  // --- LÓGICA IMPORTANTE AQUÍ ---
   onProductoChange(event: any) {
     const productoSeleccionado: ProductoResponse = event.value; 
-    
-    // Limpiamos presentaciones anteriores siempre que cambia el producto
     this.presentacionesFiltradas = [];
     this.detalleForm.patchValue({ presentacion: null });
 
     if (productoSeleccionado) {
-        // 1. Llamar al servicio para buscar las presentaciones de ESTE producto
-        // Pedimos una página grande (100) para traer todas las presentaciones de ese producto
         this.presentacionService.listarPorProducto(productoSeleccionado.id, 0, 100).subscribe({
-            next: (data) => {
-                this.presentacionesFiltradas = data.content;
-            },
-            error: (err) => {
-                console.error("Error cargando presentaciones", err);
-            }
+            next: (data) => this.presentacionesFiltradas = data.content,
+            error: (err) => console.error("Error cargando presentaciones", err)
         });
 
-        // 2. Sugerir precio base
         this.detalleForm.patchValue({ 
             precioUnitario: productoSeleccionado.precioUnitarioVenta 
         });
     }
   }
-
-  // --- RESTO DEL CÓDIGO (Igual que antes) ---
 
   openNew() {
     this.compra = {} as CompraResponse;
@@ -171,18 +147,22 @@ export class ListaCompras implements OnInit {
   }
 
   editCompra(compra: CompraResponse) {
+    // Validar regla de negocio: Solo se actualizan compras REGISTRADAS
+    if (compra.estado !== 'REGISTRADO') {
+        this.messageService.add({severity:'warn', summary:'Acción no permitida', detail:'Solo se pueden editar compras en estado REGISTRADO'});
+        return;
+    }
+
     this.compra = { ...compra };
     
-    // Aquí hay un pequeño reto: al editar, necesitamos cargar las presentaciones
-    // del producto de cada detalle si quisiéramos editar la línea, 
-    // pero como tu formulario de "Agregar Item" empieza vacío, no es crítico.
+    // Mapeo inverso: Buscar el ID del proveedor basado en la Razón Social que llega del DTO
+    const provEncontrado = this.proveedores.find(p => p.razonSocial === compra.proveedor);
     
     this.form.patchValue({
       numeroComprobante: compra.numeroComprobante,
       descripcion: compra.descripcion,
       estado: compra.estado,
-      // Si tu backend enviara el idProveedor sería: idProveedor: compra.idProveedor
-      // Si no lo envía, el dropdown de proveedor aparecerá vacío o con el ID seleccionado si coincide el value.
+      idProveedor: provEncontrado ? provEncontrado.id : null
     });
 
     this.detallesActuales = compra.detalles.map(d => ({
@@ -198,6 +178,37 @@ export class ListaCompras implements OnInit {
     this.compraDialog = true;
   }
 
+  // --- NUEVAS ACCIONES DE ESTADO ---
+  openConfirmar(compra: CompraResponse) {
+      this.compra = { ...compra };
+      this.actionType = 'CONFIRMAR';
+      this.actionDialog = true;
+  }
+
+  openCancelar(compra: CompraResponse) {
+      this.compra = { ...compra };
+      this.actionType = 'CANCELAR';
+      this.actionDialog = true;
+  }
+
+  confirmStateAction() {
+      this.actionDialog = false;
+      // ASUMIMOS que tienes estos métodos en tu compraService.
+      // Si no, debes agregarlos: confirmar(id: number) y cancelar(id: number)
+      const actionObs = this.actionType === 'CONFIRMAR' 
+          ? this.compraService.confirmar(this.compra.id) 
+          : this.compraService.cancelar(this.compra.id);
+
+      actionObs.subscribe({
+          next: () => {
+              this.messageService.add({severity:'success', summary:'Éxito', detail:`Compra ${this.actionType.toLowerCase()}a correctamente`});
+              this.loadCompras(null);
+          },
+          error: () => this.messageService.add({severity:'error', summary:'Error', detail:`Error al ${this.actionType.toLowerCase()} la compra`})
+      });
+  }
+  // ---------------------------------
+
   agregarDetalle() {
     if (this.detalleForm.invalid) return;
 
@@ -209,7 +220,7 @@ export class ListaCompras implements OnInit {
       idProducto: producto.id,
       nombreProducto: producto.nombre, 
       idPresentacion: presentacion?.id || null,
-      nombrePresentacion: presentacion?.nombre || '-', // Si es null, mostramos guión
+      nombrePresentacion: presentacion?.nombre || '-', 
       cantidad: val.cantidad,
       precioUnitario: val.precioUnitario,
       subtotal: val.cantidad * val.precioUnitario
@@ -217,7 +228,7 @@ export class ListaCompras implements OnInit {
 
     this.detallesActuales.push(nuevoDetalle);
     this.detalleForm.reset({ cantidad: 1, precioUnitario: 0 });
-    this.presentacionesFiltradas = []; // Limpiar dropdown de presentaciones opcionalmente
+    this.presentacionesFiltradas = []; 
   }
 
   eliminarDetalle(index: number) {
@@ -243,7 +254,7 @@ export class ListaCompras implements OnInit {
     const request: CompraRequest = {
       descripcion: formVal.descripcion,
       numeroComprobante: formVal.numeroComprobante,
-      estado: formVal.estado,
+      estado: 'REGISTRADO', // Forzamos esto ya que el backend lo hace de todos modos
       idProveedor: formVal.idProveedor, 
       detalles: this.detallesActuales.map(d => ({
         idProducto: d.idProducto,

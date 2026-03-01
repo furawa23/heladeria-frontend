@@ -32,6 +32,10 @@ export class ProductoService {
     return this.http.get<Page<ProductoResponse>>(`${this.apiUrl}/venta`, { params });
   }
 
+  listarDisponiblesParaVenta(): Observable<ProductoResponse[]> {
+    return this.http.get<ProductoResponse[]>(`${this.apiUrl}/disponible-venta`);
+  }
+
   listarPorCategoria(idCat: number, page: number = 0, size: number = 10, sort: string = ''): Observable<Page<ProductoResponse>> {
     let params = this.getParams(page, size, sort);
     return this.http.get<Page<ProductoResponse>>(`${this.apiUrl}/categoria/${idCat}`, { params });
