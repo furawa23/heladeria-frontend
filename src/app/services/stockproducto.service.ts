@@ -19,16 +19,8 @@ export class StockProductoService {
   }
 
   // @GetMapping("/producto/{idProducto}")
-  listarPorProducto(idProducto: number, page: number = 0, size: number = 10, sort: string = ''): Observable<Page<StockProdResponse>> {
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
-
-    if (sort) {
-      params = params.set('sort', sort);
-    }
-
-    return this.http.get<Page<StockProdResponse>>(`${this.apiUrl}/producto/${idProducto}`, { params });
+  listarPorProducto(idProducto: number): Observable<StockProdResponse[]> {
+    return this.http.get<StockProdResponse[]>(`${this.apiUrl}/producto/${idProducto}`);
   }
 
   // @GetMapping("/producto/{idProducto}/sucursal")

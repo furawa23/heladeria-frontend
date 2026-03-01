@@ -198,10 +198,10 @@ export class ListaProductos implements OnInit {
 
     const prodId = event.data.id;
     if (!this.stockCache[prodId]) {
-      this.stockService.listarPorProducto(prodId, 0, 50).subscribe({
+      this.stockService.listarPorProducto(prodId).subscribe({
         next: (resp) => {
           // 1. Reasignamos el objeto completo para que Angular detecte el cambio (Inmutabilidad)
-          this.stockCache = { ...this.stockCache, [prodId]: resp.content };
+          this.stockCache = { ...this.stockCache, [prodId]: resp };
           
           // 2. Le decimos explícitamente a Angular que redibuje la vista
           this.cdr.detectChanges();
