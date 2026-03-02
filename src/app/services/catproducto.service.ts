@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment'; // Mantenemos la ruta de tu archivo de entorno
-import { CategoriaProdRequest, CategoriaProdResponse, Page } from '../models/models.interface';
+import { CategoriaProdRequest, CategoriaProdResponse } from '../models/almacen.interface';
+import { Page } from '../models/seguridad.interface';
 
 @Injectable({
   providedIn: 'root'

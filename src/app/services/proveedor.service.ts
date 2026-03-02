@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment'; // Asegúrate que la ruta sea correcta según tu estructura
-import { ProveedorRequest, ProveedorResponse, Page } from '../models/models.interface';
+import { ProveedorRequest, ProveedorResponse } from '../models/compra.interface';
+import { Page } from '../models/seguridad.interface';
 
 @Injectable({
   providedIn: 'root'

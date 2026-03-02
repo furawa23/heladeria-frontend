@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment';
-import { CompraRequest, CompraResponse, Page } from '../models/models.interface';
+import { CompraRequest, CompraResponse } from '../models/compra.interface';
+import { Page } from '../models/seguridad.interface';
 
 @Injectable({
   providedIn: 'root'

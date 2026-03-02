@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment';
 // Asegúrate de importar tus interfaces correctas aquí
-import { UsuarioRequest, RegisterRequest, UsuarioResponse, Page } from '../models/models.interface';
+import { UsuarioRequest, RegisterRequest, UsuarioResponse, Page } from '../models/seguridad.interface';
 
 @Injectable({
   providedIn: 'root'

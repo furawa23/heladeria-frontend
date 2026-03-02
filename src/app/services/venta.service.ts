@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment';
-import { VentaRequest, VentaResponse, Page } from '../models/models.interface';
+import { VentaRequest, VentaResponse } from '../models/venta.interface';
+import { Page } from '../models/seguridad.interface';
 
 @Injectable({
   providedIn: 'root'

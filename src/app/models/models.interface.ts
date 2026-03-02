@@ -215,13 +215,6 @@ export interface DetVentaRequest {
   idProducto: number
 }
 
-export interface DetVentaRequest {
-  cantidad: number,
-  precioUnitario: number,
-  idPresentacion: number,
-  idProducto: number
-}
-
 export interface DetVentaResponse {
   id: number,
   idProducto: number,

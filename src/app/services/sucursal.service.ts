@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment';
-import { SucursalRequest, SucursalResponse, Page } from '../models/models.interface';
+import { SucursalRequest, SucursalResponse, Page } from '../models/seguridad.interface';
 
 @Injectable({
   providedIn: 'root'

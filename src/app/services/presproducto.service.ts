@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment';
-import { PresentacionProdRequest, PresentacionProdResponse, Page } from '../models/models.interface';
+import { PresentacionProdRequest, PresentacionProdResponse } from '../models/almacen.interface';
+import { Page } from '../models/seguridad.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +18,6 @@ export class PresentacionProductoService {
     return this.http.post<PresentacionProdResponse>(this.apiUrl, dto);
   }
 
-  // @GetMapping("/producto/{idProducto}")
   listarPorProducto(idProducto: number, page: number = 0, size: number = 10, sort: string = ''): Observable<Page<PresentacionProdResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
