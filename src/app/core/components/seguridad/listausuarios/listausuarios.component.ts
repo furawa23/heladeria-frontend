@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module';
-import { UsuarioResponse, UsuarioRequest, SucursalResponse, EmpresaResponse } from '../../../../models/models.interface'; // Asegúrate de tener estas interfaces
+import { UsuarioResponse, UsuarioRequest, SucursalResponse, EmpresaResponse } from '../../../../models/seguridad.interface'; // Asegúrate de tener estas interfaces
 import { MessageService } from 'primeng/api';
 import { UsuarioService } from '../../../../services/usuario.service';
 import { SucursalService } from '../../../../services/sucursal.service';

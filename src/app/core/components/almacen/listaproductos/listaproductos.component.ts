@@ -19,7 +19,7 @@ import {
   CategoriaProdResponse, 
   PresentacionProdResponse,
   PresentacionProdRequest
-} from '../../../../models/models.interface';
+} from '../../../../models/almacen.interface';
 
 
 @Component({

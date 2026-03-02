@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module'; // Ajusta la ruta
-import { MesaResponse, MesaRequest } from '../../../../models/models.interface'; // Ajusta la ruta
+import { MesaResponse, MesaRequest } from '../../../../models/venta.interface'; // Ajusta la ruta
 import { MessageService } from 'primeng/api';
 import { MesaService } from '../../../../services/mesa.service'; // Asegúrate de importar el servicio creado
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';

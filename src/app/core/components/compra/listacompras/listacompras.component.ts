@@ -6,11 +6,9 @@ import { MessageService } from 'primeng/api';
 import { 
   CompraResponse, 
   CompraRequest, 
-  ProveedorResponse,
-  ProductoResponse,       
-  PresentacionProdResponse 
-} from '../../../../models/models.interface';
-
+  ProveedorResponse
+} from '../../../../models/compra.interface';
+import { ProductoResponse, PresentacionProdResponse } from '../../../../models/almacen.interface';
 import { CompraService } from '../../../../services/compra.service';
 import { ProveedorService } from '../../../../services/proveedor.service';
 import { ProductoService } from '../../../../services/producto.service'; 

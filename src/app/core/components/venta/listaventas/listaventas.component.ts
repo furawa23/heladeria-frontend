@@ -4,9 +4,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 
 import { 
-  VentaResponse, VentaRequest, MesaResponse, ProductoResponse, PresentacionProdResponse 
-} from '../../../../models/models.interface';
-
+  VentaResponse, VentaRequest, MesaResponse} from '../../../../models/venta.interface';
+import { ProductoResponse, PresentacionProdResponse } from '../../../../models/almacen.interface';
 import { VentaService } from '../../../../services/venta.service';
 import { MesaService } from '../../../../services/mesa.service';
 import { ProductoService } from '../../../../services/producto.service'; 

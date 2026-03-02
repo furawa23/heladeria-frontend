@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module'; // Ajusta la ruta si es necesario
-import { CategoriaProdResponse, CategoriaProdRequest } from '../../../../models/models.interface';
+import { CategoriaProdResponse, CategoriaProdRequest } from '../../../../models/almacen.interface';
 import { MessageService } from 'primeng/api';
 import { CategoriaProductoService } from '../../../../services/catproducto.service'; // Asegúrate de importar el servicio creado
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';

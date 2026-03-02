@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module'; 
-import { ProveedorResponse, ProveedorRequest } from '../../../../models/models.interface'; // Ajusta la ruta a tus modelos
+import { ProveedorResponse, ProveedorRequest } from '../../../../models/compra.interface'; // Ajusta la ruta a tus modelos
 import { MessageService } from 'primeng/api';
 import { ProveedorService } from '../../../../services/proveedor.service'; // Ajusta la ruta a tu servicio
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';

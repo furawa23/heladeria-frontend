@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module';
-import { EmpresaResponse, EmpresaRequest } from '../../../../models/models.interface';
+import { EmpresaResponse, EmpresaRequest } from '../../../../models/seguridad.interface';
 import { MessageService } from 'primeng/api';
 import { EmpresaService } from '../../../../services/empresa.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
