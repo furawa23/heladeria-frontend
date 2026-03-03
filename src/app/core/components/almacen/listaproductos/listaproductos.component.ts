@@ -1,8 +1,9 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
-// Asegúrate de que SharedModule exporta los módulos de PrimeNG (TableModule, DialogModule, etc.)
 import { SharedModule } from '../../../../shared/shared.module'; 
+import { ViewChild } from '@angular/core'; // <-- Añadir ViewChild
+import { Observable } from 'rxjs'; // <-- Para manejar las peticiones dinámicas
 
 // Services
 import { ProductoService } from '../../../../services/producto.service';
@@ -20,6 +21,7 @@ import {
   PresentacionProdResponse,
   PresentacionProdRequest
 } from '../../../../models/almacen.interface';
+import { Table } from 'primeng/table';
 
 
 @Component({
@@ -31,6 +33,16 @@ import {
   providers: [MessageService, ProductoService, StockProductoService, CategoriaProductoService]
 })
 export class ListaProductos implements OnInit {
+
+  @ViewChild('dt') dt!: Table;
+
+  opcionesFiltro = [
+    { label: 'Todos los Productos', value: 'TODOS' },
+    { label: 'Solo Insumos', value: 'INSUMOS' },
+    { label: 'Solo para Venta', value: 'VENTA' },
+    { label: 'Sin Receta (Físicos)', value: 'SIN_RECETA' }
+  ];
+  filtroActual: string = 'TODOS';
 
   // --- UI Flags & Dialogs ---
   productoDialog: boolean = false;
@@ -81,12 +93,13 @@ export class ListaProductos implements OnInit {
   ngOnInit(): void {
     
     // AQUÍ DETERMINAMOS EL ROL BASADO EN EL ID_SUCURSAL
-    const authData = localStorage.getItem('auth'); 
-    if (authData) {
+    const userData = localStorage.getItem('user'); // <-- Cambiado de 'auth' a 'user'
+    
+    if (userData) {
       try {
-        const parsed = JSON.parse(authData);
-        // Según tu interfaz, un Usuario tiene idSucursal si es empleado
-        this.esEmpleado = parsed.usuario?.idSucursal != null;
+        const parsed = JSON.parse(userData);
+        // Como guardaste directamente response.usuario, evaluamos el idSucursal directo
+        this.esEmpleado = parsed.idSucursal != null; 
       } catch (e) {
         this.esEmpleado = false;
       }
@@ -121,16 +134,37 @@ export class ListaProductos implements OnInit {
 
   loadProductos(event: any) {
     this.loading = true;
-    const page = (event?.first ?? 0) / (event?.rows ?? 10);
-    const size = event?.rows ?? 10;
+    const page = (event?.first ?? 0) / (event?.rows ?? this.rows);
+    const size = event?.rows ?? this.rows;
     
     let sortStr = '';
-    if (event.sortField) {
+    if (event && event.sortField) {
       const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
       sortStr = `${event.sortField},${sortOrder}`;
     }
 
-    this.productoService.listarTodas(page, size, sortStr).subscribe({
+    // Declaramos un observable genérico para la petición
+    let peticion$: Observable<any>;
+
+    // Evaluamos qué filtro está seleccionado y usamos el método correspondiente del service
+    switch (this.filtroActual) {
+      case 'INSUMOS':
+        peticion$ = this.productoService.listarInsumos(page, size, sortStr);
+        break;
+      case 'VENTA':
+        peticion$ = this.productoService.listarProductosVenta(page, size, sortStr);
+        break;
+      case 'SIN_RECETA':
+        peticion$ = this.productoService.listarProductosSinReceta(page, size, sortStr);
+        break;
+      case 'TODOS':
+      default:
+        peticion$ = this.productoService.listarTodas(page, size, sortStr);
+        break;
+    }
+
+    // Ejecutamos la petición elegida
+    peticion$.subscribe({
       next: (data) => {
         this.productos = data.content;
         this.totalRecords = data.totalElements;
@@ -142,6 +176,13 @@ export class ListaProductos implements OnInit {
         console.error(err);
       }
     });
+  }
+
+  onFiltroChange() {
+    this.stockCache = {}; // Limpiamos la caché del stock por si acaso
+    if (this.dt) {
+      this.dt.reset(); // Esto devuelve la tabla a la página 1 y dispara loadProductos automáticamente
+    }
   }
 
   // ==========================================================
@@ -182,10 +223,24 @@ export class ListaProductos implements OnInit {
       cantidadUsada: [cantidad, [Validators.required, Validators.min(0.0001)]]
     });
     this.recetaArray.push(itemGroup);
+    this.verificarReglasStock(); // Validar si bloqueamos el stock
   }
 
   removeRecetaItem(index: number) {
     this.recetaArray.removeAt(index);
+    this.verificarReglasStock(); // Validar si habilitamos el stock
+  }
+
+  verificarReglasStock() {
+    const stockControl = this.form.get('stock');
+    if (this.recetaArray.length > 0) {
+      // Si hay receta, vaciamos el stock a 0 y bloqueamos el input
+      stockControl?.setValue(0);
+      stockControl?.disable();
+    } else {
+      // Si quitan todos los insumos, lo volvemos a habilitar
+      stockControl?.enable();
+    }
   }
 
   // ==========================================================
@@ -213,7 +268,11 @@ export class ListaProductos implements OnInit {
 
   refreshTable() {
     this.stockCache = {}; 
-    this.loadProductos({ first: 0, rows: this.rows });
+    if (this.dt) {
+      this.dt.reset();
+    } else {
+      this.loadProductos({ first: 0, rows: this.rows });
+    }
   }
 
   // ==========================================================
@@ -225,7 +284,7 @@ export class ListaProductos implements OnInit {
     this.submitted = false;
     this.productoDialog = true;
     
-    // Resetear form (incluyendo stock en 0)
+    // Resetear form
     this.form.reset({
       unidadBase: 'UNIDAD',
       seVende: false,
@@ -233,6 +292,10 @@ export class ListaProductos implements OnInit {
       stock: 0
     });
     this.recetaArray.clear();
+    
+    // IMPORTANTE: Asegurarnos de que el stock esté habilitado al crear uno nuevo
+    this.form.get('stock')?.enable();
+    
     this.cdr.detectChanges();
   }
 
@@ -343,7 +406,9 @@ export class ListaProductos implements OnInit {
   confirmSave() {
     this.saveConfirmDialog = false;
 
-    const formVal = this.form.value;
+    // Usamos getRawValue() en lugar de value porque los controles disabled (como el stock)
+    // no se incluyen en this.form.value. getRawValue() trae todo.
+    const formVal = this.form.getRawValue(); 
     
     const recetaRequest: RecetaItemRequest[] = formVal.receta.map((item: any) => ({
       insumoId: item.insumoId,

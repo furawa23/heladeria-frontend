@@ -9,6 +9,24 @@
                         <button pButton pRipple label="Nuevo Producto" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
                     </div>
                 </ng-template>
+                
+                <ng-template pTemplate="right">
+                    <p-select [options]="opcionesFiltro" 
+                                [(ngModel)]="filtroActual" 
+                                (onChange)="onFiltroChange()"
+                                optionLabel="label" 
+                                optionValue="value"
+                                [style]="{'min-width': '200px'}"
+                                placeholder="Filtrar productos">
+                        <ng-template let-opcion pTemplate="selectedItem">
+                            <i class="pi pi-filter mr-2"></i>
+                            <span>{{opcion.label}}</span>
+                        </ng-template>
+                        <ng-template let-opcion pTemplate="item">
+                            <span>{{opcion.label}}</span>
+                        </ng-template>
+                    </p-select>
+                </ng-template>
             </p-toolbar>
 
             <p-table #dt [value]="productos" 
@@ -170,7 +188,15 @@
                     <div class="field" *ngIf="esEmpleado && !producto.id">
                         <label for="stock" class="font-bold text-primary">Stock Inicial en tu Sucursal (Opcional)</label>
                         <p-inputNumber id="stock" formControlName="stock" [min]="0" suffix=" u."></p-inputNumber>
-                        <small class="block mt-1 text-500">Deja en 0 si no deseas ingresar stock en este momento.</small>
+                        
+                        <small class="block mt-1 text-500" *ngIf="recetaArray.length === 0">
+                            Deja en 0 si no deseas ingresar stock en este momento.
+                        </small>
+                        
+                        <small class="block mt-1 text-red-500 font-bold" *ngIf="recetaArray.length > 0">
+                            <i class="pi pi-info-circle mr-1"></i>
+                            El stock inicial está bloqueado porque los productos con receta se preparan al momento.
+                        </small>
                     </div>
 
                     <p-divider></p-divider>
