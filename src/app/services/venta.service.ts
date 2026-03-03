@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../enviroment';
-import { VentaRequest, VentaResponse } from '../models/venta.interface';
+import { CobrarVentaRequest, VentaRequest, VentaResponse } from '../models/venta.interface';
 import { Page } from '../models/seguridad.interface';
 
 @Injectable({
@@ -42,8 +42,8 @@ export class VentaService {
     return this.http.patch<void>(`${this.apiUrl}/${id}/cancelar`, {});
   }
 
-  cobrar(id: number): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/${id}/cobrar`, {});
+  cobrar(id: number, dto: CobrarVentaRequest): Observable<VentaResponse> {
+    return this.http.put<VentaResponse>(`${this.apiUrl}/${id}/cobrar`, dto);
   }
 
   eliminar(id: number): Observable<void> {

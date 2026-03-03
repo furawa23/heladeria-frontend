@@ -4,7 +4,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 
 import { 
-  VentaResponse, VentaRequest, MesaResponse} from '../../../../models/venta.interface';
+  VentaResponse, VentaRequest, MesaResponse, CobrarVentaRequest, PagoVentaRequest
+} from '../../../../models/venta.interface';
 import { ProductoResponse, PresentacionProdResponse } from '../../../../models/almacen.interface';
 import { VentaService } from '../../../../services/venta.service';
 import { MesaService } from '../../../../services/mesa.service';
@@ -35,12 +36,24 @@ export class ListaVentas implements OnInit {
   // Diálogos
   ventaDialog: boolean = false;
   actionDialog: boolean = false;
-  actionType: 'COBRAR' | 'CANCELAR' | 'ELIMINAR' = 'COBRAR';
+  cobrarDialog: boolean = false; // NUEVO: Dialogo exclusivo para cobrar
+  actionType: 'CANCELAR' | 'ELIMINAR' = 'CANCELAR'; // COBRAR ya no está aquí
 
   // Formularios
   form!: FormGroup;        
   detalleForm!: FormGroup; 
+  pagoForm!: FormGroup; // NUEVO: Formulario para registrar los pagos
+
   detallesActuales: any[] = []; 
+  pagosActuales: PagoVentaRequest[] = []; // NUEVO: Lista de pagos para la venta
+
+  // Dropdown para métodos de pago
+  metodosPago = [
+    { label: 'Efectivo', value: 'EFECTIVO' },
+    { label: 'Tarjeta', value: 'TARJETA' },
+    { label: 'Yape', value: 'YAPE' },
+    { label: 'Plin', value: 'PLIN' }
+  ];
 
   // Tabla Ventas
   totalRecords: number = 0;
@@ -74,18 +87,33 @@ export class ListaVentas implements OnInit {
       presentacion: [null], 
       cantidad: [1, [Validators.required, Validators.min(1)]]
     });
+
+    // Inicializamos el formulario de pagos
+    this.pagoForm = this.fb.group({
+      metodoPago: ['EFECTIVO', Validators.required],
+      monto: [null, [Validators.required, Validators.min(0.1)]]
+    });
   }
 
   loadMesas() {
     this.mesaService.listarTodas(0, 100, 'numero,asc').subscribe({
-      next: (data) => this.mesas = data.content
+      next: (data) => {
+        this.mesas = data.content;
+        this.cdr.detectChanges();
+      }
     });
   }
 
   loadProductos() {
     this.productoService.listarDisponiblesParaVenta().subscribe({
-      next: (data) => this.productos = data,
-      error: () => this.messageService.add({severity:'error', summary:'Error', detail:'Error al cargar productos disponibles para venta'})
+      next: (data) => {
+        this.productos = data;
+        this.cdr.detectChanges(); // <-- AÑADIR ESTO
+      },
+      error: () => {
+        this.messageService.add({severity:'error', summary:'Error', detail:'Error al cargar productos'});
+        this.cdr.detectChanges(); // <-- AÑADIR ESTO
+      }
     });
   }
 
@@ -155,7 +183,6 @@ export class ListaVentas implements OnInit {
   }
 
   // --- FLUJO DE CREACIÓN DE VENTAS ---
-
   openVentaRapida() {
     this.esVentaRapida = true;
     this.mesaSeleccionada = null;
@@ -223,14 +250,12 @@ export class ListaVentas implements OnInit {
     };
 
     if (this.venta.id) {
-      // ACTUALIZAR
       request.idMesa = this.venta.numeroMesa;
       this.ventaService.actualizar(this.venta.id, request).subscribe({
         next: () => this.finalizarGuardado('Venta actualizada'),
         error: () => this.messageService.add({severity:'error', summary:'Error', detail:'Error al actualizar'})
       });
     } else {
-      // CREAR - Unificada: enviamos al backend y este lo evalúa
       this.ventaService.crear(request).subscribe({
         next: () => {
           const mensaje = this.esVentaRapida 
@@ -250,9 +275,85 @@ export class ListaVentas implements OnInit {
     this.loadMesas(); 
   }
 
-  // --- ACCIONES RÁPIDAS ---
+  // --- NUEVA LÓGICA DE COBROS ---
 
-  openActionDialog(venta: VentaResponse, accion: 'COBRAR' | 'CANCELAR' | 'ELIMINAR') {
+  openCobrarDialog(venta: VentaResponse) {
+    this.venta = { ...venta };
+    this.pagosActuales = [];
+    
+    // Autocompletamos por defecto con EFECTIVO por el total de la venta
+    this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: venta.total });
+    this.cobrarDialog = true;
+  }
+
+  agregarPago() {
+    if (this.pagoForm.invalid) return;
+    const pago = this.pagoForm.value;
+    
+    // Verificamos no pasarnos del total
+    if (this.totalPagado + pago.monto > this.venta.total + 0.01) {
+        this.messageService.add({severity:'warn', summary:'Exceso', detail:'El monto supera el total de la venta'});
+        return;
+    }
+
+    this.pagosActuales.push({ metodoPago: pago.metodoPago, monto: pago.monto });
+    
+    // Preparar el form para el monto restante si aplica
+    const restante = this.montoRestante;
+    if (restante > 0) {
+        this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: restante });
+    } else {
+        this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: 0 });
+    }
+  }
+
+  eliminarPago(index: number) {
+    this.pagosActuales.splice(index, 1);
+    this.pagoForm.patchValue({ monto: this.montoRestante });
+  }
+
+  get totalPagado(): number {
+    return this.pagosActuales.reduce((sum, p) => sum + p.monto, 0);
+  }
+
+  get montoRestante(): number {
+    // 1. Agregamos esta validación de seguridad
+    if (!this.venta || !this.venta.total) {
+        return 0;
+    }
+
+    // 2. El cálculo normal
+    const restante = this.venta.total - this.totalPagado;
+    return restante > 0 ? restante : 0;
+  }
+
+  ejecutarCobro() {
+    // Tolerancia por decimales flotantes
+    if (Math.abs(this.totalPagado - this.venta.total) > 0.01) {
+        this.messageService.add({severity:'error', summary:'Error de Cuadre', detail:`Los pagos no coinciden con el total (S/ ${this.venta.total})`});
+        return;
+    }
+
+    const payload: CobrarVentaRequest = {
+        pagos: this.pagosActuales // Basado en la propiedad "pago" de tu interface
+    };
+
+    this.ventaService.cobrar(this.venta.id, payload).subscribe({
+        next: () => {
+            this.messageService.add({severity:'success', summary:'Cobrado', detail:'Venta cobrada e ingresada a caja con éxito'});
+            this.cobrarDialog = false;
+            this.loadVentas(null);
+            this.loadMesas();
+        },
+        error: (err) => {
+            this.messageService.add({severity:'error', summary:'Error', detail: err.error?.message || 'No se pudo cobrar la venta'});
+        }
+    });
+  }
+
+  // --- ACCIONES SECUNDARIAS (Cancelar / Eliminar) ---
+
+  openActionDialog(venta: VentaResponse, accion: 'CANCELAR' | 'ELIMINAR') {
     this.venta = { ...venta };
     this.actionType = accion;
     this.actionDialog = true;
@@ -262,8 +363,7 @@ export class ListaVentas implements OnInit {
     this.actionDialog = false;
     
     let obs$;
-    if (this.actionType === 'COBRAR') obs$ = this.ventaService.cobrar(this.venta.id);
-    else if (this.actionType === 'CANCELAR') obs$ = this.ventaService.cancelar(this.venta.id);
+    if (this.actionType === 'CANCELAR') obs$ = this.ventaService.cancelar(this.venta.id);
     else obs$ = this.ventaService.eliminar(this.venta.id);
 
     obs$.subscribe({

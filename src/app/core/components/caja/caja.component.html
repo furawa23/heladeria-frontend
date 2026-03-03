@@ -1,0 +1,175 @@
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-6">
+            <p-toast></p-toast>
+            
+            <p-toolbar styleClass="mb-4">
+                <ng-template pTemplate="left">
+                    <div class="my-2">
+                        <button *ngIf="!cajaAbierta" pButton pRipple label="Abrir Caja" icon="pi pi-lock-open" 
+                                class="p-button-success mr-2" (click)="openApertura()">
+                        </button>
+                        
+                        <button *ngIf="cajaAbierta" pButton pRipple label="Registrar Movimiento" icon="pi pi-money-bill" 
+                                class="p-button-info mr-2" (click)="openMovimiento()">
+                        </button>
+                        <button *ngIf="cajaAbierta" pButton pRipple label="Cerrar Caja" icon="pi pi-lock" 
+                                class="p-button-danger mr-2" (click)="confirmarCierre()">
+                        </button>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="right">
+                    <span *ngIf="cajaAbierta" class="font-bold text-primary text-xl">
+                        Caja Actual Activa
+                    </span>
+                </ng-template>
+            </p-toolbar>
+
+            <p-table #dt [value]="cajas" 
+            dataKey="id" 
+            expandableRows="true" 
+            [lazy]="true"
+            (onLazyLoad)="loadCajas($event)"
+            (onRowExpand)="onRowExpand($event)"
+            [paginator]="true" 
+            [rows]="rows" 
+            [totalRecords]="totalRecords" 
+            [loading]="loading" 
+            [rowsPerPageOptions]="rowsPerPageOptions"
+            [showCurrentPageReport]="true" 
+            currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} cajas"
+            [rowHover]="true">
+
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th style="width: 3rem"></th> 
+                        <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
+                        <th pSortableColumn="FechaApertura">Apertura <p-sortIcon field="FechaApertura"></p-sortIcon></th>
+                        <th pSortableColumn="FechaCierre">Cierre <p-sortIcon field="FechaCierre"></p-sortIcon></th>
+                        <th>Monto Inicial</th>
+                        <th>Monto Final</th>
+                        <th pSortableColumn="estado">Estado <p-sortIcon field="estado"></p-sortIcon></th>
+                    </tr>
+                </ng-template>
+
+                <ng-template pTemplate="body" let-caja let-expanded="expanded">
+                    <tr [ngClass]="{'bg-green-50': caja.estado === 'ABIERTA'}">
+                        <td>
+                            <button type="button" pButton pRipple [pRowToggler]="caja" 
+                                class="p-button-text p-button-rounded p-button-plain" 
+                                [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
+                            </button>
+                        </td>
+                        <td><span class="font-bold">#{{caja.id}}</span></td>
+                        <td>{{caja.FechaApertura | date:'dd/MM/yyyy HH:mm'}}</td>
+                        <td>{{caja.FechaCierre ? (caja.FechaCierre | date:'dd/MM/yyyy HH:mm') : '-'}}</td>
+                        <td class="text-green-600 font-bold">{{caja.montoInicial | currency:'PEN':'symbol-narrow'}}</td>
+                        <td class="text-blue-600 font-bold">{{caja.montoFinal !== null ? (caja.montoFinal | currency:'PEN':'symbol-narrow') : '-'}}</td>
+                        <td>
+                            <p-tag [severity]="caja.estado === 'ABIERTA' ? 'success' : 'secondary'" 
+                                   [value]="caja.estado">
+                            </p-tag>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #expandedrow let-caja>
+                    <tr>
+                        <td colspan="7">
+                            <div class="p-3">
+                                <span class="font-bold text-lg block mb-3">Historial de Movimientos - Caja #{{caja.id}}</span>
+                                
+                                <p-table [value]="movimientosCache[caja.id]" dataKey="id" styleClass="p-datatable-sm">
+                                    <ng-template pTemplate="header">
+                                        <tr>
+                                            <th>Fecha/Hora</th>
+                                            <th>Tipo</th>
+                                            <th>Método de Pago</th>
+                                            <th>Referencia</th>
+                                            <th class="text-right">Monto</th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="body" let-mov>
+                                        <tr>
+                                            <td>{{mov.fechaCreacion | date:'dd/MM/yyyy HH:mm'}}</td>
+                                            <td>
+                                                <p-tag [severity]="mov.tipo === 'INGRESO' ? 'success' : 'danger'" 
+                                                       [value]="mov.tipo">
+                                                </p-tag>
+                                            </td>
+                                            <td><span class="font-semibold">{{mov.metodoPago}}</span></td>
+                                            <td>
+                                                <span *ngIf="mov.idVenta" class="text-500 text-sm">Venta #{{mov.idVenta}}</span>
+                                                <span *ngIf="mov.idCompra" class="text-500 text-sm">Compra #{{mov.idCompra}}</span>
+                                                <span *ngIf="!mov.idVenta && !mov.idCompra" class="text-500 text-sm">Manual</span>
+                                            </td>
+                                            <td class="text-right font-bold" 
+                                                [ngClass]="{'text-green-500': mov.tipo === 'INGRESO', 'text-red-500': mov.tipo === 'EGRESO'}">
+                                                {{mov.tipo === 'INGRESO' ? '+' : '-'}} {{mov.monto | currency:'PEN':'symbol-narrow'}}
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="emptymessage">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4">No hay movimientos registrados en esta caja.</td>
+                                        </tr>
+                                    </ng-template>
+                                </p-table>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="aperturaDialog" [style]="{width: '450px'}" header="Abrir Nueva Caja" [modal]="true" styleClass="p-fluid">
+            <ng-template pTemplate="content">
+                <div [formGroup]="formApertura" class="field mt-3">
+                    <label for="montoInicial" class="font-bold">Monto Inicial (Efectivo en caja chica)</label>
+                    <p-inputNumber id="montoInicial" formControlName="montoInicial" mode="currency" currency="PEN" locale="es-PE" [autofocus]="true"></p-inputNumber>
+                    <small class="p-error" *ngIf="submittedApertura && formApertura.controls['montoInicial'].invalid">El monto inicial es requerido.</small>
+                </div>
+            </ng-template>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="aperturaDialog = false"></button>
+                <button pButton pRipple label="Abrir Caja" icon="pi pi-check" class="p-button-success" (click)="guardarApertura()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="movimientoDialog" [style]="{width: '450px'}" header="Registrar Movimiento Manual" [modal]="true" styleClass="p-fluid">
+            <ng-template pTemplate="content">
+                <div [formGroup]="formMovimiento">
+                    <div class="field mt-3">
+                        <label class="font-bold">Tipo de Movimiento</label>
+                        <p-select [options]="tiposMovimiento" formControlName="tipo" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                    </div>
+                    <div class="field">
+                        <label class="font-bold">Método de Pago</label>
+                        <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                    </div>
+                    <div class="field">
+                        <label for="montoMov" class="font-bold">Monto</label>
+                        <p-inputNumber id="montoMov" formControlName="monto" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
+                        <small class="p-error" *ngIf="submittedMovimiento && formMovimiento.controls['monto'].invalid">Monto válido requerido.</small>
+                    </div>
+                </div>
+            </ng-template>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="movimientoDialog = false"></button>
+                <button pButton pRipple label="Registrar" icon="pi pi-check" class="p-button-primary" (click)="guardarMovimiento()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="confirmCierreDialog" header="Confirmar Cierre de Caja" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)"></i>
+                <span>¿Estás seguro de cerrar la caja actual? Se calculará el monto final automáticamente.</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No, Cancelar" (click)="confirmCierreDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-danger" label="Sí, Cerrar Caja" (click)="ejecutarCierre()"></button>
+            </ng-template>
+        </p-dialog>
+
+    </div>
+</div>

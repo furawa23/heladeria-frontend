@@ -58,7 +58,7 @@
                         <td><span [class]="'product-badge status-' + (v.estado ? v.estado.toLowerCase() : '')">{{v.estado}}</span></td>
                         <td>
                             <button *ngIf="v.estado === 'CREADA'" pButton pRipple icon="pi pi-pencil" pTooltip="Editar" class="p-button-rounded p-button-success mr-2" (click)="editVenta(v)"></button>
-                            <button *ngIf="v.estado === 'CREADA'" pButton pRipple icon="pi pi-money-bill" pTooltip="Cobrar" class="p-button-rounded p-button-info mr-2" (click)="openActionDialog(v, 'COBRAR')"></button>
+                            <button *ngIf="v.estado === 'CREADA'" pButton pRipple icon="pi pi-money-bill" pTooltip="Cobrar" class="p-button-rounded p-button-info mr-2" (click)="openCobrarDialog(v)"></button>
                             <button *ngIf="v.estado !== 'CANCELADA'" pButton pRipple icon="pi pi-times-circle" pTooltip="Cancelar" class="p-button-rounded p-button-danger mr-2" (click)="openActionDialog(v, 'CANCELAR')"></button>
                             <button pButton pRipple icon="pi pi-trash" pTooltip="Eliminar" class="p-button-rounded p-button-secondary" (click)="openActionDialog(v, 'ELIMINAR')"></button>
                         </td>
@@ -142,12 +142,69 @@
 
         <p-dialog [(visible)]="actionDialog" header="Confirmar Acción" [modal]="true" [style]="{width:'450px'}">
             <div class="flex align-items-center justify-content-center">
-                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" [ngClass]="{'text-red-500': actionType !== 'COBRAR', 'text-blue-500': actionType === 'COBRAR'}"></i>
+                <i class="pi pi-exclamation-triangle mr-3 text-red-500" style="font-size: 2rem"></i>
                 <span *ngIf="venta">¿Seguro que deseas <b>{{ actionType | lowercase }}</b> la venta <b>{{venta.numeroComprobante}}</b>?</span>
             </div>
             <ng-template pTemplate="footer">
                 <button pButton label="No" icon="pi pi-times" class="p-button-text" (click)="actionDialog = false"></button>
                 <button pButton label="Sí, continuar" icon="pi pi-check" class="p-button-text" (click)="confirmAction()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="cobrarDialog" header="Cobrar Venta #{{venta?.id}}" [modal]="true" [style]="{width:'500px'}">
+            <div class="mb-4">
+                <h3 class="mt-0 text-center text-primary">Total a Cobrar: {{venta?.total | currency:'PEN':'symbol-narrow'}}</h3>
+                
+                <div class="formgrid grid align-items-end" [formGroup]="pagoForm">
+                    <div class="field col-5 mb-0">
+                        <label>Método</label>
+                        <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                    </div>
+                    <div class="field col-5 mb-0">
+                        <label>Monto</label>
+                        <p-inputNumber formControlName="monto" mode="currency" currency="PEN" locale="es-PE" [min]="0.1"></p-inputNumber>
+                    </div>
+                    <div class="field col-2 mb-0">
+                        <button pButton icon="pi pi-plus" class="p-button-success p-button-sm" [disabled]="pagoForm.invalid" (click)="agregarPago()"></button>
+                    </div>
+                </div>
+            </div>
+        
+            <p-table [value]="pagosActuales" styleClass="p-datatable-sm" [rowHover]="true">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Método</th>
+                        <th class="text-right">Monto</th>
+                        <th style="width: 3rem"></th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-pago let-i="rowIndex">
+                    <tr>
+                        <td class="font-bold">{{pago.metodoPago}}</td>
+                        <td class="text-right">{{pago.monto | currency:'PEN':'symbol-narrow'}}</td>
+                        <td>
+                            <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" (click)="eliminarPago(i)"></button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="summary">
+                    <div class="flex justify-content-between align-items-center">
+                        <span>Restante: <span class="text-red-500">{{montoRestante | currency:'PEN':'symbol-narrow'}}</span></span>
+                        <span>Pagado: <span class="text-green-500 font-bold">{{totalPagado | currency:'PEN':'symbol-narrow'}}</span></span>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="3" class="text-center py-3 text-500">No se ha agregado ningún método de pago aún.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="Cancelar" (click)="cobrarDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-primary" label="Ejecutar Cobro" 
+                        [disabled]="montoRestante > 0.01" 
+                        (click)="ejecutarCobro()"></button>
             </ng-template>
         </p-dialog>
 

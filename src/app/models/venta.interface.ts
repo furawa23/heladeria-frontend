@@ -45,3 +45,12 @@ export interface VentaResponse {
   numeroMesa: number,
   detalles: DetVentaResponse[]
 }
+
+export interface PagoVentaRequest {
+  metodoPago: string;
+  monto: number
+}
+
+export interface CobrarVentaRequest {
+  pagos: PagoVentaRequest[]
+}
