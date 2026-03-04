@@ -22,6 +22,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DividerModule } from 'primeng/divider';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { DataViewModule } from 'primeng/dataview';
+import { StyleClassModule } from 'primeng/styleclass';
 
 @NgModule({
   imports: [
@@ -48,7 +49,8 @@ import { DataViewModule } from 'primeng/dataview';
     CheckboxModule,
     DividerModule,
     ToggleSwitchModule,
-    DataViewModule
+    DataViewModule,
+    StyleClassModule
   ],
   exports: [
     CommonModule,
@@ -74,7 +76,8 @@ import { DataViewModule } from 'primeng/dataview';
     CheckboxModule,
     DividerModule,
     ToggleSwitchModule,
-    DataViewModule
+    DataViewModule,
+    StyleClassModule
   ]
 })
 export class SharedModule {}

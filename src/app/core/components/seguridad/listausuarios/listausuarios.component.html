@@ -18,7 +18,7 @@
                 <h5>Filtros de Búsqueda</h5>
                 <div class="formgrid grid">
                     
-                    <div class="field col-12 md:col-4">
+                    <div class="field col-12 md:col-4" *ngIf="isSuperAdmin">
                         <label for="filtroEmpresa">Empresa</label>
                         <p-select [options]="empresasFilterOptions" 
                                     [(ngModel)]="selectedEmpresa" 
@@ -29,7 +29,7 @@
                                     placeholder="Todas las empresas"></p-select>
                     </div>
 
-                    <div class="field col-12 md:col-4">
+                    <div [class]="isSuperAdmin ? 'field col-12 md:col-4' : 'field col-12 md:col-6'">
                         <label for="filtroSucursal">Sucursal</label>
                         <p-select [options]="sucursalesFilterOptions" 
                                     [(ngModel)]="selectedSucursal" 
@@ -38,8 +38,8 @@
                                     [showClear]="true"
                                     (onChange)="refreshTable()"
                                     placeholder="Todas las sucursales"
-                                    [disabled]="!selectedEmpresa && sucursalesFilterOptions.length > 50"> 
-                                    </p-select>
+                                    [disabled]="isSuperAdmin && !selectedEmpresa"> 
+                        </p-select>
                     </div>
 
                     <div class="field col-12 md:col-2 flex align-items-end">
@@ -66,7 +66,9 @@
                 <tr>
                     <th pSortableColumn="username">Usuario <p-sortIcon field="username"></p-sortIcon></th>
                     <th pSortableColumn="rol">Rol <p-sortIcon field="rol"></p-sortIcon></th>
-                    <th pSortableColumn="empresa">Empresa <p-sortIcon field="empresa"></p-sortIcon></th>
+                    
+                    <th *ngIf="isSuperAdmin" pSortableColumn="empresa">Empresa <p-sortIcon field="empresa"></p-sortIcon></th>
+                    
                     <th pSortableColumn="sucursal">Sucursal <p-sortIcon field="sucursal"></p-sortIcon></th>
                     <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
                     <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
@@ -79,7 +81,8 @@
                     <td>{{usuario.username}}</td>
                     <td><p-tag [value]="usuario.rol" severity="info"></p-tag></td>
                     
-                    <td>{{usuario.nombreEmpresa || '-'}}</td>
+                    <td *ngIf="isSuperAdmin">{{usuario.nombreEmpresa || '-'}}</td>
+                    
                     <td>{{usuario.nombreSucursal || '-'}}</td>
 
                     <td>{{usuario.createdAt | date:'short'}}</td>
@@ -128,7 +131,7 @@
                         <small class="p-error block" *ngIf="submitted && form.controls['rol'].invalid">El rol es requerido.</small>
                     </div>
                 
-                    <div class="field mb-3">
+                    <div class="field mb-3" *ngIf="isSuperAdmin">
                         <label for="idEmpresa" class="font-bold">Empresa</label>
                         <p-select id="idEmpresa" class="w-full" 
                                     [options]="empresasFormOptions" 
@@ -149,7 +152,7 @@
                                     optionLabel="nombre" optionValue="id" 
                                     appendTo="body"
                                     placeholder="Seleccione una sucursal"
-                                    emptyMessage="Seleccione una empresa primero"
+                                    [emptyMessage]="isSuperAdmin ? 'Seleccione una empresa primero' : 'No hay sucursales disponibles'"
                                     [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idSucursal'].invalid}"></p-select>
                         <small class="p-error block" *ngIf="submitted && form.controls['idSucursal'].invalid">La sucursal es requerida.</small>
                         <small class="block text-gray-500" *ngIf="form.get('rol')?.value === 'DUENO'">Los dueños se asignan a nivel de Empresa, no de Sucursal.</small>
@@ -182,7 +185,6 @@
             </ng-template>
         </p-dialog>
 
-        </div>
         <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
             <div class="flex align-items-center justify-content-center">
                 <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
@@ -196,7 +198,8 @@
 
         <p-dialog [(visible)]="deleteUsuarioDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
             <div class="flex align-items-center justify-content-center">
-                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: #d32f2f"></i> <span *ngIf="usuario">¿Estás seguro de DESACTIVAR al usuario <b>{{usuario.username}}</b>?</span>
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: #d32f2f"></i> 
+                <span *ngIf="usuario">¿Estás seguro de DESACTIVAR al usuario <b>{{usuario.username}}</b>?</span>
             </div>
             <ng-template pTemplate="footer">
                 <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteUsuarioDialog = false"></button>
@@ -214,4 +217,5 @@
                 <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmRestaurar()"></button>
             </ng-template>
         </p-dialog>
+    </div>
 </div>

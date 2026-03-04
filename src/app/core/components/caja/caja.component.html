@@ -1,6 +1,15 @@
 <div class="grid">
     <div class="col-12">
-        <div class="card px-6 py-6">
+        
+        <div class="card flex flex-column align-items-center justify-content-center py-8" *ngIf="faltaSucursal">
+            <i class="pi pi-store text-primary mb-4" style="font-size: 5rem;"></i>
+            <h4 class="text-center font-bold text-2xl mb-2">Seleccione una Sucursal</h4>
+            <p class="text-center text-600 mb-0 max-w-28rem">
+                Para gestionar el módulo de cajas, por favor seleccione una sucursal en la barra superior (menú desplegable).
+            </p>
+        </div>
+
+        <div class="card px-6 py-6" *ngIf="!faltaSucursal">
             <p-toast></p-toast>
             
             <p-toolbar styleClass="mb-4">
@@ -122,54 +131,56 @@
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="aperturaDialog" [style]="{width: '450px'}" header="Abrir Nueva Caja" [modal]="true" styleClass="p-fluid">
-            <ng-template pTemplate="content">
-                <div [formGroup]="formApertura" class="field mt-3">
-                    <label for="montoInicial" class="font-bold">Monto Inicial (Efectivo en caja chica)</label>
-                    <p-inputNumber id="montoInicial" formControlName="montoInicial" mode="currency" currency="PEN" locale="es-PE" [autofocus]="true"></p-inputNumber>
-                    <small class="p-error" *ngIf="submittedApertura && formApertura.controls['montoInicial'].invalid">El monto inicial es requerido.</small>
-                </div>
-            </ng-template>
-            <ng-template pTemplate="footer">
-                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="aperturaDialog = false"></button>
-                <button pButton pRipple label="Abrir Caja" icon="pi pi-check" class="p-button-success" (click)="guardarApertura()"></button>
-            </ng-template>
-        </p-dialog>
+        <ng-container *ngIf="!faltaSucursal">
+            <p-dialog [(visible)]="aperturaDialog" [style]="{width: '450px'}" header="Abrir Nueva Caja" [modal]="true" styleClass="p-fluid">
+                <ng-template pTemplate="content">
+                    <div [formGroup]="formApertura" class="field mt-3">
+                        <label for="montoInicial" class="font-bold">Monto Inicial (Efectivo en caja chica)</label>
+                        <p-inputNumber id="montoInicial" formControlName="montoInicial" mode="currency" currency="PEN" locale="es-PE" [autofocus]="true"></p-inputNumber>
+                        <small class="p-error" *ngIf="submittedApertura && formApertura.controls['montoInicial'].invalid">El monto inicial es requerido.</small>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="footer">
+                    <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="aperturaDialog = false"></button>
+                    <button pButton pRipple label="Abrir Caja" icon="pi pi-check" class="p-button-success" (click)="guardarApertura()"></button>
+                </ng-template>
+            </p-dialog>
 
-        <p-dialog [(visible)]="movimientoDialog" [style]="{width: '450px'}" header="Registrar Movimiento Manual" [modal]="true" styleClass="p-fluid">
-            <ng-template pTemplate="content">
-                <div [formGroup]="formMovimiento">
-                    <div class="field mt-3">
-                        <label class="font-bold">Tipo de Movimiento</label>
-                        <p-select [options]="tiposMovimiento" formControlName="tipo" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+            <p-dialog [(visible)]="movimientoDialog" [style]="{width: '450px'}" header="Registrar Movimiento Manual" [modal]="true" styleClass="p-fluid">
+                <ng-template pTemplate="content">
+                    <div [formGroup]="formMovimiento">
+                        <div class="field mt-3">
+                            <label class="font-bold">Tipo de Movimiento</label>
+                            <p-select [options]="tiposMovimiento" formControlName="tipo" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                        </div>
+                        <div class="field">
+                            <label class="font-bold">Método de Pago</label>
+                            <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                        </div>
+                        <div class="field">
+                            <label for="montoMov" class="font-bold">Monto</label>
+                            <p-inputNumber id="montoMov" formControlName="monto" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
+                            <small class="p-error" *ngIf="submittedMovimiento && formMovimiento.controls['monto'].invalid">Monto válido requerido.</small>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label class="font-bold">Método de Pago</label>
-                        <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body"></p-select>
-                    </div>
-                    <div class="field">
-                        <label for="montoMov" class="font-bold">Monto</label>
-                        <p-inputNumber id="montoMov" formControlName="monto" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
-                        <small class="p-error" *ngIf="submittedMovimiento && formMovimiento.controls['monto'].invalid">Monto válido requerido.</small>
-                    </div>
-                </div>
-            </ng-template>
-            <ng-template pTemplate="footer">
-                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="movimientoDialog = false"></button>
-                <button pButton pRipple label="Registrar" icon="pi pi-check" class="p-button-primary" (click)="guardarMovimiento()"></button>
-            </ng-template>
-        </p-dialog>
+                </ng-template>
+                <ng-template pTemplate="footer">
+                    <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="movimientoDialog = false"></button>
+                    <button pButton pRipple label="Registrar" icon="pi pi-check" class="p-button-primary" (click)="guardarMovimiento()"></button>
+                </ng-template>
+            </p-dialog>
 
-        <p-dialog [(visible)]="confirmCierreDialog" header="Confirmar Cierre de Caja" [modal]="true" [style]="{width:'450px'}">
-            <div class="flex align-items-center justify-content-center">
-                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)"></i>
-                <span>¿Estás seguro de cerrar la caja actual? Se calculará el monto final automáticamente.</span>
-            </div>
-            <ng-template pTemplate="footer">
-                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No, Cancelar" (click)="confirmCierreDialog = false"></button>
-                <button pButton pRipple icon="pi pi-check" class="p-button-danger" label="Sí, Cerrar Caja" (click)="ejecutarCierre()"></button>
-            </ng-template>
-        </p-dialog>
+            <p-dialog [(visible)]="confirmCierreDialog" header="Confirmar Cierre de Caja" [modal]="true" [style]="{width:'450px'}">
+                <div class="flex align-items-center justify-content-center">
+                    <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)"></i>
+                    <span>¿Estás seguro de cerrar la caja actual? Se calculará el monto final automáticamente.</span>
+                </div>
+                <ng-template pTemplate="footer">
+                    <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No, Cancelar" (click)="confirmCierreDialog = false"></button>
+                    <button pButton pRipple icon="pi pi-check" class="p-button-danger" label="Sí, Cerrar Caja" (click)="ejecutarCierre()"></button>
+                </ng-template>
+            </p-dialog>
+        </ng-container>
 
     </div>
 </div>

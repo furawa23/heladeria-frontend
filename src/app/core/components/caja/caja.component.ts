@@ -6,6 +6,7 @@ import { SharedModule } from '../../../shared/shared.module';
 // Services
 import { CajaService } from '../../../services/caja.service';
 import { MovimientoCajaService } from '../../../services/movimientocaja.service';
+import { AuthService } from '../../../services/auth.service'; // <-- NUEVO IMPORT
 
 // Interfaces
 import { CajaResponse, CajaRequest, MovimientoCajaResponse, MovimientoCajaRequest } from '../../../models/caja.interface';
@@ -19,6 +20,9 @@ import { CajaResponse, CajaRequest, MovimientoCajaResponse, MovimientoCajaReques
   providers: [MessageService, CajaService, MovimientoCajaService]
 })
 export class CajaComponent implements OnInit {
+
+  // --- NUEVA BANDERA ---
+  faltaSucursal: boolean = false;
 
   // --- UI Flags & Dialogs ---
   aperturaDialog: boolean = false;
@@ -59,12 +63,25 @@ export class CajaComponent implements OnInit {
   constructor(
     private cajaService: CajaService,
     private movimientoService: MovimientoCajaService,
+    private authService: AuthService, // <-- INYECTAR AUTHSERVICE
     private messageService: MessageService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    // 1. Validar si el usuario requiere seleccionar una sucursal
+    const user = this.authService.getUser();
+    const sucursalTemporal = localStorage.getItem('sucursalActiva');
+
+    // Si el usuario NO tiene idSucursal (es dueño/superadmin) Y no ha elegido una en el menú superior
+    if (!user?.idSucursal && !sucursalTemporal) {
+      this.faltaSucursal = true;
+      this.loading = false;
+      return; // Detenemos la ejecución aquí, no llamamos al backend
+    }
+
+    // 2. Si todo está bien, continuamos con la carga normal
     this.initForms();
     this.verificarCajaAbierta();
   }

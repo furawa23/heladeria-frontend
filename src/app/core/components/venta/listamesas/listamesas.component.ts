@@ -1,8 +1,9 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { SharedModule } from '../../../../shared/shared.module'; // Ajusta la ruta
-import { MesaResponse, MesaRequest } from '../../../../models/venta.interface'; // Ajusta la ruta
+import { SharedModule } from '../../../../shared/shared.module'; 
+import { MesaResponse, MesaRequest } from '../../../../models/venta.interface'; 
 import { MessageService } from 'primeng/api';
-import { MesaService } from '../../../../services/mesa.service'; // Asegúrate de importar el servicio creado
+import { MesaService } from '../../../../services/mesa.service'; 
+import { AuthService } from '../../../../services/auth.service'; // <-- NUEVO IMPORT
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
@@ -16,6 +17,10 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
   ]
 })
 export class ListaMesas implements OnInit {
+
+  // --- NUEVA BANDERA ---
+  faltaSucursal: boolean = false;
+  idSucursalActual: number | null = null; // Para auto-asignar al crear mesas
 
   // Diálogos
   mesaDialog: boolean = false;
@@ -31,25 +36,41 @@ export class ListaMesas implements OnInit {
   // Paginación y Estado
   totalRecords: number = 0;
   loading: boolean = true;
-  rows: number = 12; // Múltiplo de 3 y 4 ideal para cuadrículas
+  rows: number = 12; 
   rowsPerPageOptions = [12, 24, 36];
   submitted: boolean = false;
 
   constructor(
     private mesaService: MesaService,
+    private authService: AuthService, // <-- INYECTADO
     private messageService: MessageService, 
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder
   ) {}
 
   ngOnInit(): void {
+    // 1. Validar si el usuario requiere seleccionar una sucursal
+    const user = this.authService.getUser();
+    const sucursalTemporal = localStorage.getItem('sucursalActiva');
+
+    // Si el usuario NO tiene idSucursal (es dueño/superadmin) Y no ha elegido una
+    if (!user?.idSucursal && !sucursalTemporal) {
+      this.faltaSucursal = true;
+      this.loading = false;
+      return; // Detenemos la carga
+    }
+
+    // 2. Guardamos el ID de la sucursal actual para auto-asignarlo a las mesas nuevas
+    this.idSucursalActual = user?.idSucursal || (sucursalTemporal ? parseInt(sucursalTemporal) : null);
+
+    // 3. Continuamos el flujo normal
     this.initForm();
   }
 
   initForm() {
     this.form = this.fb.group({
       numero: [null, [Validators.required, Validators.min(1)]],
-      idSucursal: [null, Validators.required] // Idealmente esto en HTML sería un p-dropdown
+      idSucursal: [this.idSucursalActual, Validators.required] // Asignado automáticamente
     });
   }
 
@@ -60,16 +81,14 @@ export class ListaMesas implements OnInit {
     const page = first / rows;
     const size = rows;
 
-    // Lógica de ordenamiento por defecto (ej. por número de mesa)
     let sortStr = 'numero,asc';
-    if (event.sortField) {
+    if (event && event.sortField) {
         const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         sortStr = `${event.sortField},${sortOrder}`;
     }
 
     this.mesaService.listarTodas(page, size, sortStr).subscribe({
       next: (data: any) => {
-        // Suponiendo que tu backend retorna una estructura paginada { content: [], totalElements: X }
         this.mesas = data.content;
         this.totalRecords = data.totalElements;
         this.loading = false;
@@ -89,18 +108,21 @@ export class ListaMesas implements OnInit {
     this.mesa = {} as MesaResponse;
     this.submitted = false;
     this.mesaDialog = true;
-    this.form.reset();
+    
+    // Reseteamos el form manteniendo el ID de sucursal oculto intacto
+    this.form.reset({
+      numero: null,
+      idSucursal: this.idSucursalActual
+    });
   }
 
   editMesa(mesa: MesaResponse){
     this.mesa = {...mesa};
     this.mesaDialog = true;
     
-    // Aquí asumimos que tienes el ID de la sucursal o lo buscas, 
-    // en este ejemplo lo dejaremos preparado para que lo adaptes según tu lógica de Sucursales.
     this.form.patchValue({
       numero: mesa.numero,
-      idSucursal: null // Reemplazar con mesa.idSucursal si la respuesta lo incluye, o manejarlo en el template
+      idSucursal: this.idSucursalActual 
     });
   }
 

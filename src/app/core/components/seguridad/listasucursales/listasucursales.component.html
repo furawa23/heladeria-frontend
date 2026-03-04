@@ -14,7 +14,7 @@
                 </ng-template>
             </p-toolbar>
 
-            <div class="card mb-3 p-fluid">
+            <div class="card mb-3 p-fluid" *ngIf="isSuperAdmin">
                 <h5>Filtros de Búsqueda</h5>
                 <div class="formgrid grid">
                     
@@ -52,7 +52,7 @@
             <ng-template pTemplate="header">
                 <tr>
                     <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
-                    <th pSortableColumn="empresa">Empresa <p-sortIcon field="empresa"></p-sortIcon></th>
+                    <th *ngIf="isSuperAdmin" pSortableColumn="empresa">Empresa <p-sortIcon field="empresa"></p-sortIcon></th>
                     <th>Dirección</th>
                     <th pSortableColumn="createdAt">F. Registro <p-sortIcon field="createdAt"></p-sortIcon></th>
                     <th pSortableColumn="deletedAt">Estado <p-sortIcon field="deletedAt"></p-sortIcon></th>
@@ -63,7 +63,7 @@
             <ng-template pTemplate="body" let-sucursal>
                 <tr>
                     <td>{{sucursal.nombre}}</td>
-                    <td>{{sucursal.empresa?.razonSocial || sucursal.nombreEmpresa || '-'}}</td>
+                    <td *ngIf="isSuperAdmin">{{sucursal.empresa?.razonSocial || sucursal.nombreEmpresa || '-'}}</td>
                     <td>{{sucursal.direccion}}</td>
                     <td>{{sucursal.createdAt | date:'short'}}</td>
                     <td>
@@ -98,7 +98,7 @@
             <ng-template pTemplate="content">
                 <div [formGroup]="form">
                     
-                    <div class="field mb-3">
+                    <div class="field mb-3" *ngIf="isSuperAdmin">
                         <label for="idEmpresa" class="font-bold">Empresa</label>
                         <p-select id="idEmpresa" class="w-full" 
                                     [options]="empresasFormOptions" 

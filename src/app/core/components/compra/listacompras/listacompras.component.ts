@@ -13,6 +13,7 @@ import { CompraService } from '../../../../services/compra.service';
 import { ProveedorService } from '../../../../services/proveedor.service';
 import { ProductoService } from '../../../../services/producto.service'; 
 import { PresentacionProductoService } from '../../../../services/presproducto.service';
+import { AuthService } from '../../../../services/auth.service'; // <-- NUEVO IMPORT
 
 @Component({
   selector: 'app-listacompras',
@@ -29,6 +30,9 @@ import { PresentacionProductoService } from '../../../../services/presproducto.s
   ] 
 })
 export class ListaCompras implements OnInit {
+
+  // --- NUEVA BANDERA ---
+  faltaSucursal: boolean = false;
 
   compraDialog: boolean = false;
   deleteCompraDialog: boolean = false;
@@ -58,12 +62,25 @@ export class ListaCompras implements OnInit {
     private proveedorService: ProveedorService,
     private productoService: ProductoService,         
     private presentacionService: PresentacionProductoService, 
+    private authService: AuthService, // <-- INYECTADO
     private messageService: MessageService,
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder
   ) {}
 
   ngOnInit(): void {
+    // 1. Validar si el usuario requiere seleccionar una sucursal
+    const user = this.authService.getUser();
+    const sucursalTemporal = localStorage.getItem('sucursalActiva');
+
+    // Si el usuario NO tiene idSucursal (es dueño/superadmin) Y no ha elegido una
+    if (!user?.idSucursal && !sucursalTemporal) {
+      this.faltaSucursal = true;
+      this.loading = false;
+      return; // Detenemos la ejecución para que no haga peticiones HTTP
+    }
+
+    // 2. Si todo está bien, continuamos normalmente
     this.initForms();
     this.loadAuxiliarData();
   }
@@ -145,7 +162,6 @@ export class ListaCompras implements OnInit {
   }
 
   editCompra(compra: CompraResponse) {
-    // Validar regla de negocio: Solo se actualizan compras REGISTRADAS
     if (compra.estado !== 'REGISTRADO') {
         this.messageService.add({severity:'warn', summary:'Acción no permitida', detail:'Solo se pueden editar compras en estado REGISTRADO'});
         return;
@@ -153,7 +169,6 @@ export class ListaCompras implements OnInit {
 
     this.compra = { ...compra };
     
-    // Mapeo inverso: Buscar el ID del proveedor basado en la Razón Social que llega del DTO
     const provEncontrado = this.proveedores.find(p => p.razonSocial === compra.proveedor);
     
     this.form.patchValue({
@@ -176,7 +191,6 @@ export class ListaCompras implements OnInit {
     this.compraDialog = true;
   }
 
-  // --- NUEVAS ACCIONES DE ESTADO ---
   openConfirmar(compra: CompraResponse) {
       this.compra = { ...compra };
       this.actionType = 'CONFIRMAR';
@@ -191,8 +205,6 @@ export class ListaCompras implements OnInit {
 
   confirmStateAction() {
       this.actionDialog = false;
-      // ASUMIMOS que tienes estos métodos en tu compraService.
-      // Si no, debes agregarlos: confirmar(id: number) y cancelar(id: number)
       const actionObs = this.actionType === 'CONFIRMAR' 
           ? this.compraService.confirmar(this.compra.id) 
           : this.compraService.cancelar(this.compra.id);
@@ -205,7 +217,6 @@ export class ListaCompras implements OnInit {
           error: () => this.messageService.add({severity:'error', summary:'Error', detail:`Error al ${this.actionType.toLowerCase()} la compra`})
       });
   }
-  // ---------------------------------
 
   agregarDetalle() {
     if (this.detalleForm.invalid) return;
@@ -252,7 +263,7 @@ export class ListaCompras implements OnInit {
     const request: CompraRequest = {
       descripcion: formVal.descripcion,
       numeroComprobante: formVal.numeroComprobante,
-      estado: 'REGISTRADO', // Forzamos esto ya que el backend lo hace de todos modos
+      estado: 'REGISTRADO', 
       idProveedor: formVal.idProveedor, 
       detalles: this.detallesActuales.map(d => ({
         idProducto: d.idProducto,

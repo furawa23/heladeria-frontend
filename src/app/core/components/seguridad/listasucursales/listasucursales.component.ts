@@ -1,9 +1,10 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module';
-import { SucursalResponse, SucursalRequest, EmpresaResponse } from '../../../../models/seguridad.interface';
+import { SucursalResponse, SucursalRequest, EmpresaResponse, UsuarioResponse } from '../../../../models/seguridad.interface';
 import { MessageService } from 'primeng/api';
 import { SucursalService } from '../../../../services/sucursal.service';
 import { EmpresaService } from '../../../../services/empresa.service';
+import { AuthService } from '../../../../services/auth.service'; // NUEVO IMPORT
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -17,6 +18,10 @@ import { ActivatedRoute, Router } from '@angular/router';
   ]
 })
 export class Listasucursales implements OnInit {
+
+  // --- LÓGICA DE ROLES ---
+  isSuperAdmin: boolean = false;
+  usuarioLogueado: UsuarioResponse | null = null;
 
   // Filtros
   selectedEmpresa: number | null = null;
@@ -46,6 +51,7 @@ export class Listasucursales implements OnInit {
   constructor(
     private sucursalService: SucursalService,
     private empresaService: EmpresaService,
+    private authService: AuthService, // INYECTADO
     private messageService: MessageService, 
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder,
@@ -54,37 +60,46 @@ export class Listasucursales implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // 1. Obtener contexto del usuario
+    this.usuarioLogueado = this.authService.getUser();
+    // Ajusta 'SUPERADMIN' al nombre exacto de tu rol en BD si es diferente
+    this.isSuperAdmin = this.authService.hasRole('SUPERADMIN'); 
+
     this.initForm();
-    this.loadEmpresas();
 
-    // 1. Intentamos leer del STATE (Viene oculto)
-    const navigation = this.router.getCurrentNavigation(); // Solo funciona en constructor a veces, mejor history.state
-    const stateEmpresaId = history.state.empresaId;
+    if (this.isSuperAdmin) {
+      // Si es SUPERADMIN, cargamos la lista de empresas y evaluamos URLs/State
+      this.loadEmpresas();
 
-    if (stateEmpresaId) {
-       this.selectedEmpresa = +stateEmpresaId;
-       this.loadSucursales({ first: 0, rows: 10 });
-    } 
-    // 2. Si no hay state, revisamos QueryParams (por si acaso alguien entra por link antiguo)
-    else {
-      this.route.queryParams.subscribe(params => {
-        if (params['empresaId']) {
-          this.selectedEmpresa = +params['empresaId'];
-        }
-        this.loadSucursales({ first: 0, rows: 10 });
-      });
+      const stateEmpresaId = history.state.empresaId;
+      if (stateEmpresaId) {
+         this.selectedEmpresa = +stateEmpresaId;
+         this.loadSucursales({ first: 0, rows: 10 });
+      } else {
+        this.route.queryParams.subscribe(params => {
+          if (params['empresaId']) {
+            this.selectedEmpresa = +params['empresaId'];
+          }
+          this.loadSucursales({ first: 0, rows: 10 });
+        });
+      }
+    } else {
+      // Si es DUEÑO, forzamos su propia empresa, ignoramos QueryParams y no cargamos otras empresas
+      this.selectedEmpresa = this.usuarioLogueado?.idEmpresa || null;
+      this.loadSucursales({ first: 0, rows: 10 });
     }
   }
 
   initForm() {
     this.form = this.fb.group({
-      idEmpresa: [null, Validators.required],
+      // Si no es superadmin, pre-llenamos con su idEmpresa
+      idEmpresa: [this.isSuperAdmin ? null : this.usuarioLogueado?.idEmpresa, Validators.required],
       nombre: ['', Validators.required],
       direccion: ['', Validators.required]
     });
   }
 
-  // Cargamos empresas una sola vez para usar en filtro y formulario
+  // Cargamos empresas solo si es SUPERADMIN
   loadEmpresas() {
     this.empresaService.listarTodas(0, 1000).subscribe({
         next: (data) => {
@@ -95,7 +110,6 @@ export class Listasucursales implements OnInit {
     });
   }
 
-// Lógica principal de carga con filtro y ordenamiento
   loadSucursales(event: any) {
     this.loading = true;
     const first = event?.first ?? 0;
@@ -103,27 +117,23 @@ export class Listasucursales implements OnInit {
     const page = first / rows;
     const size = rows;
 
-    // --- LÓGICA DE ORDENAMIENTO ---
     let sortStr = '';
     if (event.sortField) {
-        // PrimeNG envía 1 para Ascendente, -1 para Descendente
-        // Convertimos a 'asc' o 'desc' para Spring Boot
         const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         sortStr = `${event.sortField},${sortOrder}`;
     }
-    // ------------------------------
 
     if (this.selectedEmpresa) {
-        // Filtrado por Empresa (pasamos sortStr como 4to argumento)
+        // DUEÑOS siempre caerán aquí gracias a la asignación en ngOnInit
         this.sucursalService.listarPorEmpresa(page, size, this.selectedEmpresa, sortStr)
             .subscribe(this.processData());
     } else {
-        // Listar Todas (pasamos sortStr como 3er argumento)
+        // SUPERADMIN viendo todas las sucursales globales
         this.sucursalService.listarTodas(page, size, sortStr)
             .subscribe(this.processData());
     }
   }
-  // Helper para procesar respuesta
+
   processData() {
     return {
       next: (data: any) => {
@@ -140,42 +150,40 @@ export class Listasucursales implements OnInit {
     this.loadSucursales({ first: 0, rows: this.rows });
   }
 
-  // Se ejecuta al cambiar el dropdown de filtro
   onEmpresaFilterChange() {
     this.refreshTable();
   }
 
   clearFilters() {
-      this.selectedEmpresa = null;
-      // Limpiamos la URL también
-      this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: { empresaId: null },
-          queryParamsHandling: 'merge'
-      });
-      this.refreshTable();
+      // Solo el SUPERADMIN puede limpiar filtros
+      if (this.isSuperAdmin) {
+        this.selectedEmpresa = null;
+        this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { empresaId: null },
+            queryParamsHandling: 'merge'
+        });
+        this.refreshTable();
+      }
   }
 
   openNew(){
     this.sucursal = {} as SucursalResponse;
     this.submitted = false;
     this.sucursalDialog = true;
-    this.form.reset();
-
-    // Si hay una empresa filtrada, la pre-seleccionamos en el formulario
-    if (this.selectedEmpresa) {
-        this.form.patchValue({ idEmpresa: this.selectedEmpresa });
-    }
+    
+    // Reseteamos el formulario. Si es dueño, mantenemos su idEmpresa invisible.
+    this.form.reset({
+      idEmpresa: this.isSuperAdmin ? (this.selectedEmpresa || null) : this.usuarioLogueado?.idEmpresa,
+      nombre: '',
+      direccion: ''
+    });
   }
 
   editSucursal(sucursal: SucursalResponse){
     this.sucursal = {...sucursal};
     this.sucursalDialog = true;
     
-    // Mapeo de datos para editar
-    // Aseguramos que idEmpresa se extraiga correctamente si viene en un objeto anidado
-    // Asumo que tu SucursalResponse tiene un campo 'empresa' con 'id', o un campo 'idEmpresa' plano.
-    // Ajusta esto según tu DTO real:
     const idEmpresaValue = (sucursal as any).idEmpresa || (sucursal as any).empresa?.id;
 
     this.form.patchValue({
@@ -214,7 +222,6 @@ export class Listasucursales implements OnInit {
   confirmSave() {
     this.saveConfirmDialog = false;
     
-    // Usamos getRawValue por seguridad (buenas prácticas)
     const formValues = this.form.getRawValue();
     
     const sucursalRequest: SucursalRequest = {

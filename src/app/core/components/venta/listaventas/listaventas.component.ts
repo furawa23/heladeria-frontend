@@ -11,6 +11,7 @@ import { VentaService } from '../../../../services/venta.service';
 import { MesaService } from '../../../../services/mesa.service';
 import { ProductoService } from '../../../../services/producto.service'; 
 import { PresentacionProductoService } from '../../../../services/presproducto.service';
+import { AuthService } from '../../../../services/auth.service'; // <-- NUEVO IMPORT
 
 @Component({
   selector: 'app-listaventas',
@@ -21,6 +22,9 @@ import { PresentacionProductoService } from '../../../../services/presproducto.s
   providers: [VentaService, MesaService, ProductoService, PresentacionProductoService, MessageService]
 })
 export class ListaVentas implements OnInit {
+
+  // --- NUEVA BANDERA ---
+  faltaSucursal: boolean = false;
 
   // Listas de datos
   ventas: VentaResponse[] = [];
@@ -36,16 +40,16 @@ export class ListaVentas implements OnInit {
   // Diálogos
   ventaDialog: boolean = false;
   actionDialog: boolean = false;
-  cobrarDialog: boolean = false; // NUEVO: Dialogo exclusivo para cobrar
-  actionType: 'CANCELAR' | 'ELIMINAR' = 'CANCELAR'; // COBRAR ya no está aquí
+  cobrarDialog: boolean = false; 
+  actionType: 'CANCELAR' | 'ELIMINAR' = 'CANCELAR'; 
 
   // Formularios
   form!: FormGroup;        
   detalleForm!: FormGroup; 
-  pagoForm!: FormGroup; // NUEVO: Formulario para registrar los pagos
+  pagoForm!: FormGroup; 
 
   detallesActuales: any[] = []; 
-  pagosActuales: PagoVentaRequest[] = []; // NUEVO: Lista de pagos para la venta
+  pagosActuales: PagoVentaRequest[] = []; 
 
   // Dropdown para métodos de pago
   metodosPago = [
@@ -65,12 +69,25 @@ export class ListaVentas implements OnInit {
     private mesaService: MesaService,
     private productoService: ProductoService,         
     private presentacionService: PresentacionProductoService, 
+    private authService: AuthService, // <-- INYECTADO
     private messageService: MessageService,
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder
   ) {}
 
   ngOnInit(): void {
+    // 1. Validar si el usuario requiere seleccionar una sucursal
+    const user = this.authService.getUser();
+    const sucursalTemporal = localStorage.getItem('sucursalActiva');
+
+    // Si el usuario NO tiene idSucursal (es dueño/superadmin) Y no ha elegido una
+    if (!user?.idSucursal && !sucursalTemporal) {
+      this.faltaSucursal = true;
+      this.loadingVentas = false;
+      return; // Detenemos la carga de mesas y productos
+    }
+
+    // 2. Si todo está bien, continuamos
     this.initForms();
     this.loadMesas();
     this.loadProductos();
@@ -88,7 +105,6 @@ export class ListaVentas implements OnInit {
       cantidad: [1, [Validators.required, Validators.min(1)]]
     });
 
-    // Inicializamos el formulario de pagos
     this.pagoForm = this.fb.group({
       metodoPago: ['EFECTIVO', Validators.required],
       monto: [null, [Validators.required, Validators.min(0.1)]]
@@ -108,11 +124,11 @@ export class ListaVentas implements OnInit {
     this.productoService.listarDisponiblesParaVenta().subscribe({
       next: (data) => {
         this.productos = data;
-        this.cdr.detectChanges(); // <-- AÑADIR ESTO
+        this.cdr.detectChanges(); 
       },
       error: () => {
         this.messageService.add({severity:'error', summary:'Error', detail:'Error al cargar productos'});
-        this.cdr.detectChanges(); // <-- AÑADIR ESTO
+        this.cdr.detectChanges(); 
       }
     });
   }
@@ -290,7 +306,6 @@ export class ListaVentas implements OnInit {
     if (this.pagoForm.invalid) return;
     const pago = this.pagoForm.value;
     
-    // Verificamos no pasarnos del total
     if (this.totalPagado + pago.monto > this.venta.total + 0.01) {
         this.messageService.add({severity:'warn', summary:'Exceso', detail:'El monto supera el total de la venta'});
         return;
@@ -298,7 +313,6 @@ export class ListaVentas implements OnInit {
 
     this.pagosActuales.push({ metodoPago: pago.metodoPago, monto: pago.monto });
     
-    // Preparar el form para el monto restante si aplica
     const restante = this.montoRestante;
     if (restante > 0) {
         this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: restante });
@@ -317,25 +331,21 @@ export class ListaVentas implements OnInit {
   }
 
   get montoRestante(): number {
-    // 1. Agregamos esta validación de seguridad
     if (!this.venta || !this.venta.total) {
         return 0;
     }
-
-    // 2. El cálculo normal
     const restante = this.venta.total - this.totalPagado;
     return restante > 0 ? restante : 0;
   }
 
   ejecutarCobro() {
-    // Tolerancia por decimales flotantes
     if (Math.abs(this.totalPagado - this.venta.total) > 0.01) {
         this.messageService.add({severity:'error', summary:'Error de Cuadre', detail:`Los pagos no coinciden con el total (S/ ${this.venta.total})`});
         return;
     }
 
     const payload: CobrarVentaRequest = {
-        pagos: this.pagosActuales // Basado en la propiedad "pago" de tu interface
+        pagos: this.pagosActuales 
     };
 
     this.ventaService.cobrar(this.venta.id, payload).subscribe({

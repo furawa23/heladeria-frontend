@@ -1,110 +1,117 @@
 <div class="grid">
     <div class="col-12">
-        <div class="card px-6 py-6">
-            <p-toast></p-toast>
-            
-            <p-toolbar styleClass="mb-4">
-                <ng-template pTemplate="left">
-                    <div class="my-2">
-                        <button pButton pRipple label="Nueva Mesa" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
-                    </div>
-                </ng-template>
-                <ng-template pTemplate="right">
-                    <button pButton pRipple label="Refrescar Mapa" icon="pi pi-refresh" class="p-button-help" (click)="refreshGrid()"></button>
-                </ng-template>
-            </p-toolbar>
-
-            <p-dataView #dv 
-            [value]="mesas" 
-            layout="grid"
-            [lazy]="true"
-            (onLazyLoad)="loadMesas($event)"
-            [paginator]="true" 
-            [rows]="rows" 
-            [totalRecords]="totalRecords" 
-            [loading]="loading"
-            [rowsPerPageOptions]="rowsPerPageOptions" 
-            [showCurrentPageReport]="true" 
-            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} mesas"
-            emptyMessage="No se encontraron mesas.">
-            
-            <ng-template #grid let-items pTemplate="grid">
-                <div class="grid grid-nogutter w-full">
-                    
-                    <div class="col-12 sm:col-6 md:col-4 xl:col-3 p-3" *ngFor="let mesa of items">
-                        
-                        <div class="mesa-card card flex flex-column align-items-center justify-content-center p-4 border-round-xl shadow-2 border-2 transition-all transition-duration-200 hover:-translate-y-1"
-                        [ngClass]="{'bg-green-100 border-green-200 hover:shadow-green-400': mesa.libre, 'bg-red-300 border-red-300 hover:shadow-red-400': !mesa.libre}">
-                            
-                            <i class="pi pi-th-large text-4xl mb-3" 
-                               [ngClass]="{'text-green-600': mesa.libre, 'text-red-600': !mesa.libre}"></i>
-                            
-                            <div class="text-2xl font-bold mb-1 text-center">Mesa {{mesa.numero}}</div>
-                            
-                            <p-tag [value]="mesa.libre ? 'Libre' : 'Ocupada'" 
-                                   [severity]="mesa.libre ? 'success' : 'danger'" 
-                                   styleClass="mb-3 font-bold px-3">
-                            </p-tag>
-                            
-                            <div class="flex gap-2 mt-auto">
-                                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-outlined" (click)="editMesa(mesa)"></button>
-                                <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-outlined" (click)="deleteMesa(mesa)"></button>
-                            </div>
-                        </div>
+        <p-toast></p-toast>
         
-                    </div>
-                </div>
-            </ng-template>
-        </p-dataView>
+        <div class="card flex flex-column align-items-center justify-content-center py-8" *ngIf="faltaSucursal">
+            <i class="pi pi-store text-primary mb-4" style="font-size: 5rem;"></i>
+            <h4 class="text-center font-bold text-2xl mb-2">Seleccione una Sucursal</h4>
+            <p class="text-center text-600 mb-0 max-w-28rem">
+                Para gestionar el mapa de mesas, por favor seleccione una sucursal en la barra superior (menú desplegable).
+            </p>
         </div>
 
-        <p-dialog [(visible)]="mesaDialog" [style]="{width: '450px'}" header="Detalles de Mesa" [modal]="true" styleClass="p-fluid">
-            <ng-template pTemplate="content">
-                <div [formGroup]="form">
-                    <div class="field mb-3">
-                        <label for="numero" class="font-bold">Número de Mesa</label>
-                        <p-inputNumber id="numero" formControlName="numero"
-                                       [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['numero'].invalid}">
-                        </p-inputNumber>
-                        <small class="p-error block" *ngIf="submitted && form.controls['numero'].hasError('required')">El número es requerido.</small>
-                    </div>
+        <ng-container *ngIf="!faltaSucursal">
+            <div class="card px-6 py-6">
+                
+                <p-toolbar styleClass="mb-4">
+                    <ng-template pTemplate="left">
+                        <div class="my-2">
+                            <button pButton pRipple label="Nueva Mesa" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                        </div>
+                    </ng-template>
+                    <ng-template pTemplate="right">
+                        <button pButton pRipple label="Refrescar Mapa" icon="pi pi-refresh" class="p-button-help" (click)="refreshGrid()"></button>
+                    </ng-template>
+                </p-toolbar>
 
-                    <div class="field mb-3">
-                        <label for="idSucursal" class="font-bold">ID Sucursal</label>
-                        <p-inputNumber id="idSucursal" formControlName="idSucursal"
-                                       [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idSucursal'].invalid}">
-                        </p-inputNumber>
-                        <small class="p-error block" *ngIf="submitted && form.controls['idSucursal'].invalid">La sucursal es requerida.</small>
+                <p-dataView #dv 
+                [value]="mesas" 
+                layout="grid"
+                [lazy]="true"
+                (onLazyLoad)="loadMesas($event)"
+                [paginator]="true" 
+                [rows]="rows" 
+                [totalRecords]="totalRecords" 
+                [loading]="loading"
+                [rowsPerPageOptions]="rowsPerPageOptions" 
+                [showCurrentPageReport]="true" 
+                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} mesas"
+                emptyMessage="No se encontraron mesas.">
+                
+                <ng-template #grid let-items pTemplate="grid">
+                    <div class="grid grid-nogutter w-full">
+                        
+                        <div class="col-12 sm:col-6 md:col-4 xl:col-3 p-3" *ngFor="let mesa of items">
+                            
+                            <div class="mesa-card card flex flex-column align-items-center justify-content-center p-4 border-round-xl shadow-2 border-2 transition-all transition-duration-200 hover:-translate-y-1"
+                            [ngClass]="{'bg-green-100 border-green-200 hover:shadow-green-400': mesa.libre, 'bg-red-300 border-red-300 hover:shadow-red-400': !mesa.libre}">
+                                
+                                <i class="pi pi-th-large text-4xl mb-3" 
+                                   [ngClass]="{'text-green-600': mesa.libre, 'text-red-600': !mesa.libre}"></i>
+                                
+                                <div class="text-2xl font-bold mb-1 text-center">Mesa {{mesa.numero}}</div>
+                                
+                                <p-tag [value]="mesa.libre ? 'Libre' : 'Ocupada'" 
+                                       [severity]="mesa.libre ? 'success' : 'danger'" 
+                                       styleClass="mb-3 font-bold px-3">
+                                </p-tag>
+                                
+                                <div class="flex gap-2 mt-auto">
+                                    <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-outlined" (click)="editMesa(mesa)"></button>
+                                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-outlined" (click)="deleteMesa(mesa)"></button>
+                                </div>
+                            </div>
+            
+                        </div>
                     </div>
+                </ng-template>
+            </p-dataView>
+            </div>
+
+            <p-dialog [(visible)]="mesaDialog" [style]="{width: '450px'}" header="Detalles de Mesa" [modal]="true" styleClass="p-fluid">
+                <ng-template pTemplate="content">
+                    <div [formGroup]="form">
+                        <div class="field mb-3">
+                            <label for="numero" class="font-bold">Número de Mesa</label>
+                            <p-inputNumber id="numero" formControlName="numero"
+                                           [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['numero'].invalid}">
+                            </p-inputNumber>
+                            <small class="p-error block" *ngIf="submitted && form.controls['numero'].hasError('required')">El número es requerido.</small>
+                        </div>
+
+                        <div class="field hidden">
+                            <p-inputNumber id="idSucursal" formControlName="idSucursal"></p-inputNumber>
+                        </div>
+                    </div>
+                </ng-template>
+            
+                <ng-template pTemplate="footer">
+                    <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
+                    <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveMesa()"></button>
+                </ng-template>
+            </p-dialog>
+
+            <p-dialog [(visible)]="deleteMesaDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
+                <div class="flex align-items-center justify-content-center">
+                    <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)"></i>
+                    <span *ngIf="mesa">¿Estás seguro de ELIMINAR la <b>Mesa {{mesa.numero}}</b> de <b>{{mesa.nombreSucursal}}</b>?</span>
                 </div>
-            </ng-template>
-        
-            <ng-template pTemplate="footer">
-                <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
-                <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveMesa()"></button>
-            </ng-template>
-        </p-dialog>
+                <ng-template pTemplate="footer">
+                    <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteMesaDialog = false"></button>
+                    <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmDelete()"></button>
+                </ng-template>
+            </p-dialog>
 
-        <p-dialog [(visible)]="deleteMesaDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
-            <div class="flex align-items-center justify-content-center">
-                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)"></i>
-                <span *ngIf="mesa">¿Estás seguro de ELIMINAR la <b>Mesa {{mesa.numero}}</b> de <b>{{mesa.nombreSucursal}}</b>?</span>
-            </div>
-            <ng-template pTemplate="footer">
-                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteMesaDialog = false"></button>
-                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmDelete()"></button>
-            </ng-template>
-        </p-dialog>
-
-        <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
-            <div class="flex align-items-center justify-content-center">
-                <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
-                <span>¿Estás seguro de guardar los cambios para esta mesa?</span>
-            </div>
-            <ng-template pTemplate="footer">
-                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
-                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
-            </ng-template>
-        </p-dialog>
+            <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
+                <div class="flex align-items-center justify-content-center">
+                    <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                    <span>¿Estás seguro de guardar los cambios para esta mesa?</span>
+                </div>
+                <ng-template pTemplate="footer">
+                    <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
+                    <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
+                </ng-template>
+            </p-dialog>
+        </ng-container>
     </div>
 </div>

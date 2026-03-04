@@ -1,9 +1,10 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module';
-import { UsuarioResponse, UsuarioRequest, SucursalResponse, EmpresaResponse } from '../../../../models/seguridad.interface'; // Asegúrate de tener estas interfaces
+import { UsuarioResponse, UsuarioRequest, SucursalResponse, EmpresaResponse } from '../../../../models/seguridad.interface'; 
 import { MessageService } from 'primeng/api';
 import { UsuarioService } from '../../../../services/usuario.service';
 import { SucursalService } from '../../../../services/sucursal.service';
+import { AuthService } from '../../../../services/auth.service'; // NUEVO IMPORT
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EmpresaService } from '../../../../services/empresa.service';
@@ -18,6 +19,10 @@ import { EmpresaService } from '../../../../services/empresa.service';
   ]
 })
 export class Listausuarios implements OnInit {
+
+  // --- LÓGICA DE ROLES ---
+  isSuperAdmin: boolean = false;
+  usuarioLogueado: UsuarioResponse | null = null;
 
   selectedEmpresa: number | null = null;
   selectedSucursal: number | null = null;
@@ -36,14 +41,8 @@ export class Listausuarios implements OnInit {
   usuario!: UsuarioResponse; 
   usuarios: UsuarioResponse[] = [];
   
-  // Listas para dropdowns
   sucursalesOptions: SucursalResponse[] = [];
-
-  rolesOptions = [
-    { label: 'Administrador de Negocio', value: 'DUENO' },
-    { label: 'Cajero', value: 'EMPLEADO' },
-    { label: 'Superadmin', value: 'SUPERADMIN' }
-  ];
+  rolesOptions: any[] = []; // Se llena dinámicamente según el rol logueado
 
   form!: FormGroup;
 
@@ -59,7 +58,8 @@ export class Listausuarios implements OnInit {
 
   constructor(
     private usuarioService: UsuarioService,
-    private sucursalService: SucursalService, // Para llenar el dropdown de sucursal
+    private sucursalService: SucursalService, 
+    private authService: AuthService, // INYECTADO
     private messageService: MessageService, 
     private empresaService: EmpresaService,
     private cdr: ChangeDetectorRef,
@@ -69,12 +69,40 @@ export class Listausuarios implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // 1. Obtener contexto del usuario
+    this.usuarioLogueado = this.authService.getUser();
+    this.isSuperAdmin = this.authService.hasRole('SUPERADMIN'); 
+
     this.initForm();
-    this.loadSucursalesForDropdown();
-    this.loadEmpresasForFilter();
-    this.loadSucursalesForForm();
-    this.empresaService.listarTodas(0, 1000).subscribe(data => this.empresasFormOptions = data.content);
-    // Detectar si venimos filtrados por una sucursal específica
+
+    if (this.isSuperAdmin) {
+      // Configuraciones exclusivas para SUPERADMIN
+      this.rolesOptions = [
+        { label: 'Administrador de Negocio', value: 'DUENO' },
+        { label: 'Cajero', value: 'EMPLEADO' },
+        { label: 'Superadmin', value: 'SUPERADMIN' }
+      ];
+      this.loadEmpresasForFilter();
+      this.empresaService.listarTodas(0, 1000).subscribe(data => this.empresasFormOptions = data.content);
+      this.loadSucursalesForDropdown();
+    } else {
+      // Configuraciones exclusivas para DUEÑO
+      this.rolesOptions = [
+        { label: 'Administrador de Negocio', value: 'DUENO' },
+        { label: 'Cajero', value: 'EMPLEADO' }
+      ];
+      
+      this.selectedEmpresa = this.usuarioLogueado?.idEmpresa || null;
+      
+      // Cargamos automáticamente las sucursales de SU empresa
+      if (this.selectedEmpresa) {
+        this.sucursalService.listarPorEmpresa(0, 1000, this.selectedEmpresa).subscribe(data => {
+          this.sucursalesFilterOptions = data.content;
+          this.sucursalesFormOptions = data.content;
+        });
+      }
+    }
+
     this.loadUsuarios({ first: 0, rows: 10 });
   }
 
@@ -84,35 +112,36 @@ export class Listausuarios implements OnInit {
     });
   }
 
-  loadSucursalesForForm() {
-    this.sucursalService.listarTodas(0, 1000).subscribe(data => {
-      this.sucursalesFormOptions = data.content;
-      if(!this.selectedEmpresa) {
-        this.sucursalesFilterOptions = data.content;
-      }
+  loadSucursalesForDropdown() {
+    this.sucursalService.listarTodas(0, 1000).subscribe({
+        next: (data) => {
+            this.sucursalesOptions = data.content;
+            if(!this.selectedEmpresa) {
+              this.sucursalesFilterOptions = data.content;
+            }
+        }
     });
   }
 
   onEmpresaFilterChange() {
-    this.selectedSucursal = null; // Reseteamos sucursal al cambiar empresa
+    this.selectedSucursal = null;
     
     if (this.selectedEmpresa) {
-      // Si selecciono empresa, cargo SOLO sus sucursales en el filtro de sucursal
       this.sucursalService.listarPorEmpresa(0, 1000, this.selectedEmpresa).subscribe(data => {
         this.sucursalesFilterOptions = data.content;
       });
     } else {
-      // Si limpio empresa, muestro todas las sucursales
-      this.sucursalesFilterOptions = this.sucursalesFormOptions;
+      this.sucursalesFilterOptions = this.sucursalesOptions; // Volver a mostrar todas
     }
     this.refreshTable();
   }
 
   initForm() {
     this.form = this.fb.group({
-      rol: [null, Validators.required],     // 1. Primero el Rol
-      idEmpresa: [{value: null, disabled: true}], // 2. Empresa (inicia deshabilitado)
-      idSucursal: [{value: null, disabled: true}],// 3. Sucursal (inicia deshabilitado)
+      rol: [null, Validators.required],     
+      // Pre-llenamos con su idEmpresa de forma oculta si es dueño
+      idEmpresa: [{value: this.isSuperAdmin ? null : this.usuarioLogueado?.idEmpresa, disabled: true}], 
+      idSucursal: [{value: null, disabled: true}],
       username: ['', Validators.required],
       password: ['', Validators.required]
     });
@@ -121,36 +150,43 @@ export class Listausuarios implements OnInit {
   onRolChange() {
     const rol = this.form.get('rol')?.value;
     
-    // Reseteamos valores inferiores
-    this.form.patchValue({ idEmpresa: null, idSucursal: null });
-    this.sucursalesFormOptions = [];
+    this.form.patchValue({ idSucursal: null });
 
-    if (rol === 'SUPERADMIN') {
-        // SUPERADMIN: No tiene empresa ni sucursal (según tu lógica)
-        this.form.get('idEmpresa')?.disable();
-        this.form.get('idSucursal')?.disable();
-        
-        // Quitamos validadores si no son necesarios
-        this.form.get('idEmpresa')?.clearValidators();
-        this.form.get('idSucursal')?.clearValidators();
-    } 
-    else {
-        // DUENO o EMPLEADO: Requieren elegir Empresa primero
-        this.form.get('idEmpresa')?.enable();
-        this.form.get('idEmpresa')?.setValidators([Validators.required]);
-        
-        // Sucursal sigue bloqueada hasta que elija empresa
-        this.form.get('idSucursal')?.disable();
+    if (this.isSuperAdmin) {
+        // Lógica de SUPERADMIN (Habilitar/Deshabilitar selectores)
+        this.form.patchValue({ idEmpresa: null });
+        this.sucursalesFormOptions = [];
+
+        if (rol === 'SUPERADMIN') {
+            this.form.get('idEmpresa')?.disable();
+            this.form.get('idSucursal')?.disable();
+            this.form.get('idEmpresa')?.clearValidators();
+            this.form.get('idSucursal')?.clearValidators();
+        } else {
+            this.form.get('idEmpresa')?.enable();
+            this.form.get('idEmpresa')?.setValidators([Validators.required]);
+            this.form.get('idSucursal')?.disable();
+        }
+        this.form.get('idEmpresa')?.updateValueAndValidity();
+    } else {
+        // Lógica de DUEÑO (Empresa siempre oculta/fija, solo interacciona Sucursal)
+        if (rol === 'DUENO') {
+            this.form.get('idSucursal')?.disable();
+            this.form.get('idSucursal')?.clearValidators();
+        } else {
+            this.form.get('idSucursal')?.enable();
+            this.form.get('idSucursal')?.setValidators([Validators.required]);
+        }
     }
-    this.form.get('idEmpresa')?.updateValueAndValidity();
     this.form.get('idSucursal')?.updateValueAndValidity();
   }
 
   onEmpresaChange() {
+    // Esto solo es activado visualmente por el SUPERADMIN
     const idEmpresa = this.form.get('idEmpresa')?.value;
     const rol = this.form.get('rol')?.value;
 
-    this.form.patchValue({ idSucursal: null }); // Limpiar sucursal anterior
+    this.form.patchValue({ idSucursal: null }); 
 
     if (!idEmpresa) {
         this.sucursalesFormOptions = [];
@@ -159,16 +195,13 @@ export class Listausuarios implements OnInit {
     }
 
     if (rol === 'DUENO') {
-        // DUEÑO: Empresa seleccionada, pero Sucursal se queda NULL (bloqueada)
         this.form.get('idSucursal')?.disable();
         this.form.get('idSucursal')?.clearValidators();
     } 
     else if (rol === 'CAJERO' || rol === 'EMPLEADO' || rol === 'ADMIN_NEGOCIO') {
-        // OTROS ROLES: Deben seleccionar Sucursal de esa empresa
         this.form.get('idSucursal')?.enable();
         this.form.get('idSucursal')?.setValidators([Validators.required]);
         
-        // Cargar sucursales de la empresa seleccionada
         this.sucursalService.listarPorEmpresa(0, 100, idEmpresa).subscribe({
             next: (data) => {
                 this.sucursalesFormOptions = data.content;
@@ -178,14 +211,6 @@ export class Listausuarios implements OnInit {
     this.form.get('idSucursal')?.updateValueAndValidity();
   }
 
-  loadSucursalesForDropdown() {
-    this.sucursalService.listarTodas(0, 1000).subscribe({
-        next: (data) => {
-            this.sucursalesOptions = data.content;
-        }
-    });
-  }
-
   loadUsuarios(event: any) {
     this.loading = true;
     const first = event?.first ?? 0;
@@ -193,28 +218,23 @@ export class Listausuarios implements OnInit {
     const page = first / rows;
     const size = rows;
 
-    // --- LÓGICA DE ORDENAMIENTO ---
     let sortStr = '';
     if (event.sortField) {
-        // PrimeNG: 1 = Ascendente, -1 = Descendente
         const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         sortStr = `${event.sortField},${sortOrder}`;
     }
-    // ------------------------------
 
-    // JERARQUÍA DE FILTROS + ORDENAMIENTO
     if (this.selectedSucursal) {
-        // 1. Filtrar por Sucursal
         this.usuarioService.listarPorSucursal(this.selectedSucursal, page, size, sortStr)
             .subscribe(this.processData());
 
     } else if (this.selectedEmpresa) {
-        // 2. Filtrar por Empresa
+        // DUEÑOS siempre filtrarán aquí inicialmente gracias al ngOnInit
         this.usuarioService.listarPorEmpresa(this.selectedEmpresa, page, size, sortStr)
             .subscribe(this.processData());
 
     } else {
-        // 3. Listar Todos
+        // SUPERADMIN viendo el padrón global
         this.usuarioService.listarTodos(page, size, sortStr)
             .subscribe(this.processData());
     }
@@ -241,9 +261,11 @@ export class Listausuarios implements OnInit {
     this.submitted = false;
     this.usuarioDialog = true;
     
-    this.form.reset();
+    // Si es DUEÑO, mantenemos su empresa invisiblemente
+    this.form.reset({
+      idEmpresa: this.isSuperAdmin ? null : this.usuarioLogueado?.idEmpresa
+    });
     
-    // Estado inicial: Password requerido, Selects deshabilitados (hasta elegir rol)
     this.form.controls['password'].setValidators([Validators.required]);
     this.form.controls['idEmpresa'].disable();
     this.form.controls['idSucursal'].disable();
@@ -261,10 +283,11 @@ export class Listausuarios implements OnInit {
   }
 
   clearFilters() {
-      this.selectedEmpresa = null;
+      if (this.isSuperAdmin) {
+          this.selectedEmpresa = null;
+          this.sucursalesFilterOptions = [...this.sucursalesOptions];
+      }
       this.selectedSucursal = null;
-      // Restauramos la lista completa de sucursales en el filtro
-      this.sucursalesFilterOptions = [...this.sucursalesFormOptions];
       this.refreshTable();
   }
   
@@ -272,38 +295,30 @@ export class Listausuarios implements OnInit {
     this.usuario = { ...usuario };
     this.usuarioDialog = true;
 
-    // 1. Password opcional al editar
     this.form.controls['password'].clearValidators();
     this.form.controls['password'].updateValueAndValidity();
 
-    // 2. BLOQUEO TOTAL: Deshabilitamos Empresa y Sucursal SIEMPRE
     this.form.controls['idEmpresa'].disable();
     this.form.controls['idSucursal'].disable();
 
-    // 3. Seteamos los datos básicos
     this.form.patchValue({
         username: usuario.username,
         rol: usuario.rol,
         password: '',
-        idEmpresa: usuario.idEmpresa // Se setea el valor aunque esté disabled
+        idEmpresa: usuario.idEmpresa || this.usuarioLogueado?.idEmpresa
     });
 
-    // 4. Carga VISUAL de Sucursales
-    // Aunque el campo esté bloqueado, necesitamos cargar la lista de opciones
-    // para que el dropdown pueda mostrar el NOMBRE de la sucursal seleccionada
-    // en lugar de aparecer vacío o solo con el ID.
-    if (usuario.idEmpresa) {
+    // Carga visual de sucursales en edición
+    if (this.isSuperAdmin && usuario.idEmpresa) {
         this.sucursalService.listarPorEmpresa(0, 100, usuario.idEmpresa).subscribe(data => {
             this.sucursalesFormOptions = data.content;
-            
-            // Forzamos detección de cambios para evitar errores visuales (NG0100)
             this.cdr.detectChanges(); 
-            
-            // Una vez tenemos la lista, seteamos el valor de la sucursal
             this.form.patchValue({ idSucursal: usuario.idSucursal });
         });
+    } else if (!this.isSuperAdmin) {
+        // El DUEÑO ya tiene sus sucursales en sucursalesFormOptions
+        this.form.patchValue({ idSucursal: usuario.idSucursal });
     } else {
-        // Caso Superadmin o sin empresa: Limpiamos
         this.sucursalesFormOptions = [];
         this.form.patchValue({ idSucursal: null });
     }
@@ -329,34 +344,26 @@ export class Listausuarios implements OnInit {
 
   saveUsuario(){
     this.submitted = true;
-
     if (this.form.invalid) {
       return;
     }
-    
     this.saveConfirmDialog = true;
   }
 
   confirmSave() {
     this.saveConfirmDialog = false;
     
-    // getRawValue incluye los campos disabled (importante para idSucursal o idEmpresa cuando están bloqueados)
     const formValues = this.form.getRawValue();
 
     const requestData: UsuarioRequest = {
       username: formValues.username,
       rol: formValues.rol,
       idSucursal: formValues.idSucursal,
-      
-      // --- AGREGA ESTA LÍNEA ---
       idEmpresa: formValues.idEmpresa, 
-      // -------------------------
-
       password: formValues.password ? formValues.password : '' 
     };
 
     if(this.usuario.id){
-      // Actualizar
       this.usuarioService.actualizar(this.usuario.id, requestData).subscribe({
         next: () => {
              this.messageService.add({severity:'success', summary:'Usuario actualizado', detail:'Usuario actualizado correctamente'});
@@ -369,7 +376,6 @@ export class Listausuarios implements OnInit {
         }
       });
     } else {
-      // Crear
       this.usuarioService.crearDesdeSuperadmin(requestData).subscribe({
         next: () => {
             this.messageService.add({severity:'success', summary:'Usuario creado', detail:'Usuario creado correctamente'});
@@ -377,7 +383,7 @@ export class Listausuarios implements OnInit {
             this.usuarioDialog = false;
         },
         error: (err) => {
-            console.error(err); // Mira la consola del navegador si falla
+            console.error(err); 
             this.messageService.add({severity:'error', summary:'Error', detail:'No se pudo crear el usuario. Verifica que la Empresa/Sucursal sean válidas.'});
         }
       });
