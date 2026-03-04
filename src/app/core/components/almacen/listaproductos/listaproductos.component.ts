@@ -4,12 +4,12 @@ import { MessageService } from 'primeng/api';
 import { SharedModule } from '../../../../shared/shared.module'; 
 import { ViewChild } from '@angular/core'; // <-- Añadir ViewChild
 import { Observable } from 'rxjs'; // <-- Para manejar las peticiones dinámicas
-
 // Services
 import { ProductoService } from '../../../../services/producto.service';
 import { StockProductoService } from '../../../../services/stockproducto.service';
 import { CategoriaProductoService } from '../../../../services/catproducto.service';
 import { PresentacionProductoService } from '../../../../services/presproducto.service';
+import { AuthService } from '../../../../services/auth.service';
 
 // Interfaces
 import { 
@@ -81,6 +81,7 @@ export class ListaProductos implements OnInit {
   formPresentacion!: FormGroup;
 
   constructor(
+    public authService: AuthService,
     private productoService: ProductoService,
     private stockService: StockProductoService,
     private categoriaService: CategoriaProductoService,
@@ -91,21 +92,16 @@ export class ListaProductos implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // 3. Mucho más limpio y seguro. Puedes basarlo en el rol o si tiene sucursal
+    // Opcion A (Por Rol):
+    this.esEmpleado = this.authService.hasRole('EMPLEADO'); 
     
-    // AQUÍ DETERMINAMOS EL ROL BASADO EN EL ID_SUCURSAL
-    const userData = localStorage.getItem('user'); // <-- Cambiado de 'auth' a 'user'
-    
-    if (userData) {
-      try {
-        const parsed = JSON.parse(userData);
-        // Como guardaste directamente response.usuario, evaluamos el idSucursal directo
-        this.esEmpleado = parsed.idSucursal != null; 
-      } catch (e) {
-        this.esEmpleado = false;
-      }
-    } else {
-      this.esEmpleado = false;
-    }
+    // Opcion B (Como lo tenías, por si tiene sucursal, pero usando el servicio):
+    // const user = this.authService.getUser();
+    // this.esEmpleado = user ? user.idSucursal != null : false;
+
+    this.initForm();
+    this.cargarDatosAuxiliares();
 
     this.initForm();
     this.cargarDatosAuxiliares();

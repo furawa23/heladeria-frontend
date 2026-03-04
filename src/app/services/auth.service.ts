@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
-import { AuthResponse } from '../models/seguridad.interface';
+import { AuthResponse, UsuarioResponse } from '../models/seguridad.interface';
 import { environment } from '../enviroment';
 
 @Injectable({
@@ -37,5 +37,22 @@ export class AuthService {
 
   isLoggedIn(): boolean {
     return !!this.getToken();
+  }
+
+  getUser(): UsuarioResponse | null {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  }
+
+  // Verificar si el usuario tiene un rol específico (Ej: 'ADMIN')
+  hasRole(role: string): boolean {
+    const user = this.getUser();
+    return user?.rol === role;
+  }
+
+  // Verificar si el usuario tiene AL MENOS UNO de los roles de una lista
+  hasAnyRole(roles: string[]): boolean {
+    const user = this.getUser();
+    return user ? roles.includes(user.rol) : false;
   }
 }

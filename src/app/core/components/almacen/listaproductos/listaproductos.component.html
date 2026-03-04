@@ -6,7 +6,7 @@
             <p-toolbar styleClass="mb-4">
                 <ng-template pTemplate="left">
                     <div class="my-2">
-                        <button pButton pRipple label="Nuevo Producto" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                        <button *ngIf="authService.hasRole('DUENO')" pButton pRipple label="Nuevo Producto" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
                     </div>
                 </ng-template>
                 
@@ -46,7 +46,7 @@
 
                 <ng-template pTemplate="header">
                     <tr>
-                        <th style="width: 3rem" *ngIf="!esEmpleado"></th> 
+                        <th style="width: 3rem" *ngIf="authService.hasRole('DUENO')"></th> 
                         <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
                         <th pSortableColumn="categoria">Categoría <p-sortIcon field="categoria"></p-sortIcon></th>
                         <th pSortableColumn="unidadBase">Unidad <p-sortIcon field="unidadBase"></p-sortIcon></th>
@@ -61,7 +61,7 @@
 
                 <ng-template pTemplate="body" let-product let-expanded="expanded">
                     <tr>
-                        <td *ngIf="!esEmpleado">
+                        <td *ngIf="authService.hasRole('DUENO')">
                             <button type="button" pButton pRipple [pRowToggler]="product" 
                                 class="p-button-text p-button-rounded p-button-plain" 
                                 [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
