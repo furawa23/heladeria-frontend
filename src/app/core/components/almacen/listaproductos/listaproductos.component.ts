@@ -2,8 +2,9 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { SharedModule } from '../../../../shared/shared.module'; 
-import { ViewChild } from '@angular/core'; // <-- Añadir ViewChild
-import { Observable } from 'rxjs'; // <-- Para manejar las peticiones dinámicas
+import { ViewChild } from '@angular/core'; 
+import { Observable } from 'rxjs'; 
+
 // Services
 import { ProductoService } from '../../../../services/producto.service';
 import { StockProductoService } from '../../../../services/stockproducto.service';
@@ -22,7 +23,6 @@ import {
   PresentacionProdRequest
 } from '../../../../models/almacen.interface';
 import { Table } from 'primeng/table';
-
 
 @Component({
   selector: 'app-lista-productos',
@@ -51,14 +51,13 @@ export class ListaProductos implements OnInit {
   submitted: boolean = false;
   loading: boolean = true;
 
-  // NUEVA BANDERA PARA ROL
-  esEmpleado: boolean = false;
+  // NUEVA BANDERA: Determina si el usuario está operando "dentro" de una sucursal
+  enSucursalContexto: boolean = false;
 
   // --- Data Sources ---
   productos: ProductoResponse[] = [];
   producto!: ProductoResponse; 
   
-  // Listas auxiliares para Dropdowns
   categorias: CategoriaProdResponse[] = [];
   insumosDisponibles: ProductoResponse[] = [];
 
@@ -76,7 +75,6 @@ export class ListaProductos implements OnInit {
   stockCache: { [idProducto: number]: StockProdResponse[] } = {}; 
   expandedRowKeys: { [key: string]: boolean } = {};
 
-  // --- Formulario ---
   form!: FormGroup;
   formPresentacion!: FormGroup;
 
@@ -92,29 +90,20 @@ export class ListaProductos implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // 3. Mucho más limpio y seguro. Puedes basarlo en el rol o si tiene sucursal
-    // Opcion A (Por Rol):
-    this.esEmpleado = this.authService.hasRole('EMPLEADO'); 
-    
-    // Opcion B (Como lo tenías, por si tiene sucursal, pero usando el servicio):
-    // const user = this.authService.getUser();
-    // this.esEmpleado = user ? user.idSucursal != null : false;
+    // Verificamos si es empleado (tiene idSucursal) O si es dueño pero eligió una sucursal arriba
+    const user = this.authService.getUser();
+    const sucursalTemporal = localStorage.getItem('sucursalActiva');
+    this.enSucursalContexto = !!(user?.idSucursal || sucursalTemporal);
 
     this.initForm();
     this.cargarDatosAuxiliares();
 
-    this.initForm();
-    this.cargarDatosAuxiliares();
     this.formPresentacion = this.fb.group({
       nombre: ['', Validators.required],
       factor: [1, [Validators.required, Validators.min(1)]],
       precioVenta: [null]
     });
   }
-
-  // ==========================================================
-  // 1. CARGA INICIAL Y AUXILIARES
-  // ==========================================================
 
   cargarDatosAuxiliares() {
     this.categoriaService.listarTodas(0, 100).subscribe({
@@ -139,10 +128,8 @@ export class ListaProductos implements OnInit {
       sortStr = `${event.sortField},${sortOrder}`;
     }
 
-    // Declaramos un observable genérico para la petición
     let peticion$: Observable<any>;
 
-    // Evaluamos qué filtro está seleccionado y usamos el método correspondiente del service
     switch (this.filtroActual) {
       case 'INSUMOS':
         peticion$ = this.productoService.listarInsumos(page, size, sortStr);
@@ -159,7 +146,6 @@ export class ListaProductos implements OnInit {
         break;
     }
 
-    // Ejecutamos la petición elegida
     peticion$.subscribe({
       next: (data) => {
         this.productos = data.content;
@@ -175,15 +161,11 @@ export class ListaProductos implements OnInit {
   }
 
   onFiltroChange() {
-    this.stockCache = {}; // Limpiamos la caché del stock por si acaso
+    this.stockCache = {}; 
     if (this.dt) {
-      this.dt.reset(); // Esto devuelve la tabla a la página 1 y dispara loadProductos automáticamente
+      this.dt.reset(); 
     }
   }
-
-  // ==========================================================
-  // 2. LOGICA DEL FORMULARIO REACTIVO
-  // ==========================================================
   
   initForm() {
     this.form = this.fb.group({
@@ -193,7 +175,6 @@ export class ListaProductos implements OnInit {
       seVende: [false],
       precioUnitarioVenta: [0],
       receta: this.fb.array([]),
-      // Control para stock inicial
       stock: [0, [Validators.min(0)]] 
     });
 
@@ -219,42 +200,33 @@ export class ListaProductos implements OnInit {
       cantidadUsada: [cantidad, [Validators.required, Validators.min(0.0001)]]
     });
     this.recetaArray.push(itemGroup);
-    this.verificarReglasStock(); // Validar si bloqueamos el stock
+    this.verificarReglasStock(); 
   }
 
   removeRecetaItem(index: number) {
     this.recetaArray.removeAt(index);
-    this.verificarReglasStock(); // Validar si habilitamos el stock
+    this.verificarReglasStock(); 
   }
 
   verificarReglasStock() {
     const stockControl = this.form.get('stock');
     if (this.recetaArray.length > 0) {
-      // Si hay receta, vaciamos el stock a 0 y bloqueamos el input
       stockControl?.setValue(0);
       stockControl?.disable();
     } else {
-      // Si quitan todos los insumos, lo volvemos a habilitar
       stockControl?.enable();
     }
   }
 
-  // ==========================================================
-  // 3. LOGICA DE EXPANSIÓN (STOCK DUEÑO)
-  // ==========================================================
-
   onRowExpand(event: any) {
-    // Solo cargamos si es dueño (por seguridad)
-    if (this.esEmpleado) return;
+    // Si hay sucursal activa, no permitimos expandir, el stock ya está en la tabla
+    if (this.enSucursalContexto) return;
 
     const prodId = event.data.id;
     if (!this.stockCache[prodId]) {
       this.stockService.listarPorProducto(prodId).subscribe({
         next: (resp) => {
-          // 1. Reasignamos el objeto completo para que Angular detecte el cambio (Inmutabilidad)
           this.stockCache = { ...this.stockCache, [prodId]: resp };
-          
-          // 2. Le decimos explícitamente a Angular que redibuje la vista
           this.cdr.detectChanges();
         },
         error: (err) => console.error(err)
@@ -271,16 +243,11 @@ export class ListaProductos implements OnInit {
     }
   }
 
-  // ==========================================================
-  // 4. ABM (ALTA, BAJA, MODIFICACIÓN)
-  // ==========================================================
-
   openNew() {
     this.producto = {} as ProductoResponse;
     this.submitted = false;
     this.productoDialog = true;
     
-    // Resetear form
     this.form.reset({
       unidadBase: 'UNIDAD',
       seVende: false,
@@ -289,9 +256,7 @@ export class ListaProductos implements OnInit {
     });
     this.recetaArray.clear();
     
-    // IMPORTANTE: Asegurarnos de que el stock esté habilitado al crear uno nuevo
     this.form.get('stock')?.enable();
-    
     this.cdr.detectChanges();
   }
 
@@ -320,10 +285,6 @@ export class ListaProductos implements OnInit {
 
     this.cdr.detectChanges();
   }
-
-  // ==========================================================
-  // LOGICA DE PRESENTACIONES
-  // ==========================================================
 
   openPresentaciones(prod: ProductoResponse) {
     this.productoSeseleccionadoParaPresentacion = prod;
@@ -402,8 +363,6 @@ export class ListaProductos implements OnInit {
   confirmSave() {
     this.saveConfirmDialog = false;
 
-    // Usamos getRawValue() en lugar de value porque los controles disabled (como el stock)
-    // no se incluyen en this.form.value. getRawValue() trae todo.
     const formVal = this.form.getRawValue(); 
     
     const recetaRequest: RecetaItemRequest[] = formVal.receta.map((item: any) => ({
@@ -418,8 +377,8 @@ export class ListaProductos implements OnInit {
       seVende: formVal.seVende,
       precioUnitarioVenta: formVal.precioUnitarioVenta,
       receta: recetaRequest,
-      // Solo enviamos stock si NO tiene ID (es creación) y si ES empleado
-      stock: (!this.producto.id && this.esEmpleado) ? (formVal.stock || 0) : 0
+      // Solo enviamos stock si NO tiene ID y existe contexto de sucursal
+      stock: (!this.producto.id && this.enSucursalContexto) ? (formVal.stock || 0) : 0
     };
 
     if (this.producto.id) {

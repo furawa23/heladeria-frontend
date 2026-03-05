@@ -4,8 +4,8 @@ export interface CajaRequest {
 
 export interface CajaResponse {
     id: number;
-    FechaApertura: string;
-    FechaCierre: string;
+    fechaApertura: string;
+    fechaCierre: string;
     montoInicial: number;
     montoFinal: number;
     estado: string

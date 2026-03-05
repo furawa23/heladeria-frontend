@@ -6,7 +6,7 @@ import { SharedModule } from '../../../shared/shared.module';
 // Services
 import { CajaService } from '../../../services/caja.service';
 import { MovimientoCajaService } from '../../../services/movimientocaja.service';
-import { AuthService } from '../../../services/auth.service'; // <-- NUEVO IMPORT
+import { AuthService } from '../../../services/auth.service';
 
 // Interfaces
 import { CajaResponse, CajaRequest, MovimientoCajaResponse, MovimientoCajaRequest } from '../../../models/caja.interface';
@@ -21,7 +21,6 @@ import { CajaResponse, CajaRequest, MovimientoCajaResponse, MovimientoCajaReques
 })
 export class CajaComponent implements OnInit {
 
-  // --- NUEVA BANDERA ---
   faltaSucursal: boolean = false;
 
   // --- UI Flags & Dialogs ---
@@ -36,8 +35,24 @@ export class CajaComponent implements OnInit {
   cajas: CajaResponse[] = [];
   cajaAbierta: CajaResponse | null = null;
   
-  // --- Row Expansion (Movimientos) ---
+  // --- Dashboard de Caja Abierta ---
+  movimientosCajaAbiertaOriginal: MovimientoCajaResponse[] = [];
+  movimientosCajaAbierta: MovimientoCajaResponse[] = [];
+  
+  // Totales para las tarjetas
+  totalIngresosActivos: number = 0;
+  totalEgresosActivos: number = 0;
+  
+  // --- Row Expansion (Movimientos Históricos) ---
   movimientosCache: { [idCaja: number]: MovimientoCajaResponse[] } = {};
+
+  // --- Filtros ---
+  opcionesFiltroMov = [
+    { label: 'Todos los Movimientos', value: 'TODOS' },
+    { label: 'Solo Ingresos', value: 'INGRESO' },
+    { label: 'Solo Egresos', value: 'EGRESO' }
+  ];
+  filtroMovActual: string = 'TODOS';
 
   // --- Dropdowns ---
   tiposMovimiento = [
@@ -63,25 +78,22 @@ export class CajaComponent implements OnInit {
   constructor(
     private cajaService: CajaService,
     private movimientoService: MovimientoCajaService,
-    private authService: AuthService, // <-- INYECTAR AUTHSERVICE
+    private authService: AuthService,
     private messageService: MessageService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    // 1. Validar si el usuario requiere seleccionar una sucursal
     const user = this.authService.getUser();
     const sucursalTemporal = localStorage.getItem('sucursalActiva');
 
-    // Si el usuario NO tiene idSucursal (es dueño/superadmin) Y no ha elegido una en el menú superior
     if (!user?.idSucursal && !sucursalTemporal) {
       this.faltaSucursal = true;
       this.loading = false;
-      return; // Detenemos la ejecución aquí, no llamamos al backend
+      return; 
     }
 
-    // 2. Si todo está bien, continuamos con la carga normal
     this.initForms();
     this.verificarCajaAbierta();
   }
@@ -105,8 +117,10 @@ export class CajaComponent implements OnInit {
   verificarCajaAbierta() {
     this.cajaService.obtenerCajaAbierta().subscribe({
       next: (caja) => {
-        // Si responde 204, 'caja' será null.
         this.cajaAbierta = caja || null;
+        if (this.cajaAbierta) {
+            this.cargarMovimientosActivos();
+        }
       },
       error: () => {
         this.cajaAbierta = null;
@@ -119,7 +133,7 @@ export class CajaComponent implements OnInit {
     const page = (event?.first ?? 0) / (event?.rows ?? 10);
     const size = event?.rows ?? 10;
     
-    let sortStr = 'id,desc'; // Ordenar por defecto de más reciente a más antigua
+    let sortStr = 'id,desc'; 
     if (event?.sortField) {
       const sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
       sortStr = `${event.sortField},${sortOrder}`;
@@ -147,13 +161,54 @@ export class CajaComponent implements OnInit {
   }
 
   // ==========================================================
-  // EXPANSIÓN DE FILA (MOVIMIENTOS)
+  // LÓGICA DE MOVIMIENTOS CAJA ACTIVA (DASHBOARD)
+  // ==========================================================
+
+  cargarMovimientosActivos() {
+    if (!this.cajaAbierta) return;
+    
+    this.movimientoService.listarPorCaja(this.cajaAbierta.id, 0, 1000, 'id,desc').subscribe({
+      next: (resp) => {
+        this.movimientosCajaAbiertaOriginal = resp.content;
+        this.aplicarFiltroMovimientos();
+      },
+      error: (err) => console.error('Error cargando movimientos de caja activa', err)
+    });
+  }
+
+  onFiltroMovChange() {
+      this.aplicarFiltroMovimientos();
+  }
+
+  aplicarFiltroMovimientos() {
+      // 1. Filtrar para la tabla
+      if (this.filtroMovActual === 'TODOS') {
+          this.movimientosCajaAbierta = [...this.movimientosCajaAbiertaOriginal];
+      } else {
+          this.movimientosCajaAbierta = this.movimientosCajaAbiertaOriginal.filter(
+              mov => mov.tipo === this.filtroMovActual
+          );
+      }
+
+      // 2. Calcular totales globales de la caja para las tarjetas
+      this.totalIngresosActivos = this.movimientosCajaAbiertaOriginal
+          .filter(m => m.tipo === 'INGRESO')
+          .reduce((acc, curr) => acc + curr.monto, 0);
+
+      this.totalEgresosActivos = this.movimientosCajaAbiertaOriginal
+          .filter(m => m.tipo === 'EGRESO')
+          .reduce((acc, curr) => acc + curr.monto, 0);
+
+      this.cdr.detectChanges();
+  }
+
+  // ==========================================================
+  // EXPANSIÓN DE FILA (MOVIMIENTOS HISTÓRICOS)
   // ==========================================================
 
   onRowExpand(event: any) {
     const idCaja = event.data.id;
     if (!this.movimientosCache[idCaja]) {
-      // Cargamos hasta 100 movimientos de esa caja para la vista rápida
       this.movimientoService.listarPorCaja(idCaja, 0, 100, 'id,desc').subscribe({
         next: (resp) => {
           this.movimientosCache = { ...this.movimientosCache, [idCaja]: resp.content };
@@ -203,6 +258,7 @@ export class CajaComponent implements OnInit {
       next: () => {
         this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Caja cerrada correctamente' });
         this.confirmCierreDialog = false;
+        this.cajaAbierta = null; 
         this.refreshTable();
       },
       error: (err) => {
@@ -230,7 +286,7 @@ export class CajaComponent implements OnInit {
       tipo: vals.tipo,
       monto: vals.monto,
       metodoPago: vals.metodoPago,
-      idVenta: 0, // 0 o null según manejes en tu backend si no hay referencia
+      idVenta: 0, 
       idCompra: 0
     };
 
@@ -239,11 +295,8 @@ export class CajaComponent implements OnInit {
         this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Movimiento registrado' });
         this.movimientoDialog = false;
         
-        // Forzamos la recarga de los movimientos de la caja abierta si está expandida
-        if (this.cajaAbierta && this.movimientosCache[this.cajaAbierta.id]) {
-            delete this.movimientosCache[this.cajaAbierta.id];
-        }
-        this.refreshTable();
+        // Recargar los movimientos de la caja activa
+        this.cargarMovimientosActivos();
       },
       error: (err) => {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'No se pudo registrar el movimiento' });

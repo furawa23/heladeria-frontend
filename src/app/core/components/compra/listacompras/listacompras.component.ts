@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
+import { Table } from 'primeng/table';
 
 import { 
   CompraResponse, 
@@ -13,7 +14,7 @@ import { CompraService } from '../../../../services/compra.service';
 import { ProveedorService } from '../../../../services/proveedor.service';
 import { ProductoService } from '../../../../services/producto.service'; 
 import { PresentacionProductoService } from '../../../../services/presproducto.service';
-import { AuthService } from '../../../../services/auth.service'; // <-- NUEVO IMPORT
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-listacompras',
@@ -30,19 +31,34 @@ import { AuthService } from '../../../../services/auth.service'; // <-- NUEVO IM
   ] 
 })
 export class ListaCompras implements OnInit {
+  
+  @ViewChild('dt') dt!: Table;
 
   // --- NUEVA BANDERA ---
   faltaSucursal: boolean = false;
 
+  // --- FILTROS DE ESTADO ---
+  opcionesEstado = [
+    { label: 'Todas las Compras', value: 'TODAS' },
+    { label: 'Registradas', value: 'REGISTRADO' },
+    { label: 'Confirmadas', value: 'CONFIRMADA' },
+    { label: 'Canceladas', value: 'CANCELADA' }
+  ];
+  estadoActual: string = 'TODAS';
+
+  // --- DIÁLOGOS ---
   compraDialog: boolean = false;
   deleteCompraDialog: boolean = false;
-  
-  // Nuevo diálogo para Confirmar/Cancelar
   actionDialog: boolean = false;
+  detalleDialog: boolean = false; // Nuevo diálogo de solo lectura
+  
   actionType: 'CONFIRMAR' | 'CANCELAR' = 'CONFIRMAR';
 
+  // --- DATOS ---
   compras: CompraResponse[] = [];
   compra!: CompraResponse;
+  compraSeleccionada: CompraResponse | null = null; // Para el modal de detalles
+  detalleItems: any[] = []; // Detalles de la compra seleccionada
   
   proveedores: ProveedorResponse[] = [];
   productos: ProductoResponse[] = [];             
@@ -62,25 +78,22 @@ export class ListaCompras implements OnInit {
     private proveedorService: ProveedorService,
     private productoService: ProductoService,         
     private presentacionService: PresentacionProductoService, 
-    private authService: AuthService, // <-- INYECTADO
+    private authService: AuthService,
     private messageService: MessageService,
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder
   ) {}
 
   ngOnInit(): void {
-    // 1. Validar si el usuario requiere seleccionar una sucursal
     const user = this.authService.getUser();
     const sucursalTemporal = localStorage.getItem('sucursalActiva');
 
-    // Si el usuario NO tiene idSucursal (es dueño/superadmin) Y no ha elegido una
     if (!user?.idSucursal && !sucursalTemporal) {
       this.faltaSucursal = true;
       this.loading = false;
-      return; // Detenemos la ejecución para que no haga peticiones HTTP
+      return; 
     }
 
-    // 2. Si todo está bien, continuamos normalmente
     this.initForms();
     this.loadAuxiliarData();
   }
@@ -112,6 +125,14 @@ export class ListaCompras implements OnInit {
     });
   }
 
+  onEstadoChange() {
+    if (this.dt) {
+      this.dt.reset();
+    } else {
+      this.loadCompras({ first: 0, rows: this.rows });
+    }
+  }
+
   loadCompras(event: any) {
     this.loading = true;
     const page = (event?.first ?? 0) / (event?.rows ?? 10);
@@ -124,8 +145,17 @@ export class ListaCompras implements OnInit {
   
     this.compraService.listarTodas(page, size, sortStr).subscribe({
       next: (data) => {
-        this.compras = data.content;
-        this.totalRecords = data.totalElements;
+        let resultados = data.content;
+        
+        // Si tu backend no soporta filtrar por estado, lo hacemos en el frontend
+        // Nota: Si es posible, lo ideal es enviar 'this.estadoActual' en la petición de listarTodas
+        if (this.estadoActual !== 'TODAS') {
+            resultados = resultados.filter((c: CompraResponse) => c.estado === this.estadoActual);
+        }
+
+        this.compras = resultados;
+        // Ajustamos el total de records según el filtro (frontend) o el total del backend
+        this.totalRecords = this.estadoActual !== 'TODAS' ? resultados.length : data.totalElements;
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -151,6 +181,19 @@ export class ListaCompras implements OnInit {
             precioUnitario: productoSeleccionado.precioUnitarioVenta 
         });
     }
+  }
+
+  abrirDetalle(compra: CompraResponse) {
+    this.compraSeleccionada = compra;
+    // Los detalles ya vienen en el objeto compra, así que los usamos directamente
+    this.detalleItems = compra.detalles || [];
+    this.detalleDialog = true;
+  }
+
+  cerrarDetalle() {
+    this.detalleDialog = false;
+    this.compraSeleccionada = null;
+    this.detalleItems = [];
   }
 
   openNew() {
@@ -185,7 +228,7 @@ export class ListaCompras implements OnInit {
       nombrePresentacion: d.nombrePresentacion,
       cantidad: d.cantidad,
       precioUnitario: d.precioUnitario,
-      subtotal: d.subtotal
+      subtotal: d.subtotal || (d.cantidad * d.precioUnitario)
     }));
 
     this.compraDialog = true;
@@ -212,7 +255,7 @@ export class ListaCompras implements OnInit {
       actionObs.subscribe({
           next: () => {
               this.messageService.add({severity:'success', summary:'Éxito', detail:`Compra ${this.actionType.toLowerCase()}a correctamente`});
-              this.loadCompras(null);
+              this.dt.reset(); // Reiniciamos la tabla para recargar
           },
           error: () => this.messageService.add({severity:'error', summary:'Error', detail:`Error al ${this.actionType.toLowerCase()} la compra`})
       });
@@ -278,7 +321,7 @@ export class ListaCompras implements OnInit {
         next: () => {
           this.messageService.add({severity:'success', summary:'Actualizado', detail:'Compra actualizada'});
           this.compraDialog = false;
-          this.loadCompras(null);
+          this.dt.reset();
         },
         error: (err) => this.messageService.add({severity:'error', summary:'Error', detail:'Error al actualizar'})
       });
@@ -287,7 +330,7 @@ export class ListaCompras implements OnInit {
         next: () => {
           this.messageService.add({severity:'success', summary:'Creado', detail:'Compra registrada'});
           this.compraDialog = false;
-          this.loadCompras(null);
+          this.dt.reset();
         },
         error: (err) => this.messageService.add({severity:'error', summary:'Error', detail:'Error al crear'})
       });
@@ -304,7 +347,7 @@ export class ListaCompras implements OnInit {
     this.compraService.eliminar(this.compra.id).subscribe({
       next: () => {
         this.messageService.add({severity:'success', summary:'Eliminado', detail:'Compra eliminada'});
-        this.loadCompras(null);
+        this.dt.reset();
       },
       error: () => this.messageService.add({severity:'error', summary:'Error', detail:'Error al eliminar'})
     });

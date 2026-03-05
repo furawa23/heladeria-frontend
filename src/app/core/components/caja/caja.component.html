@@ -9,135 +9,225 @@
             </p>
         </div>
 
-        <div class="card px-6 py-6" *ngIf="!faltaSucursal">
+        <div *ngIf="!faltaSucursal">
             <p-toast></p-toast>
             
             <p-toolbar styleClass="mb-4">
                 <ng-template pTemplate="left">
-                    <div class="my-2">
+                    <div class="flex flex-wrap align-items-center gap-2 my-2">
                         <button *ngIf="!cajaAbierta" pButton pRipple label="Abrir Caja" icon="pi pi-lock-open" 
-                                class="p-button-success mr-2" (click)="openApertura()">
+                                class="p-button-success" (click)="openApertura()">
                         </button>
                         
                         <button *ngIf="cajaAbierta" pButton pRipple label="Registrar Movimiento" icon="pi pi-money-bill" 
-                                class="p-button-info mr-2" (click)="openMovimiento()">
+                                class="p-button-primary" (click)="openMovimiento()">
                         </button>
                         <button *ngIf="cajaAbierta" pButton pRipple label="Cerrar Caja" icon="pi pi-lock" 
-                                class="p-button-danger mr-2" (click)="confirmarCierre()">
+                                class="p-button-danger" (click)="confirmarCierre()">
                         </button>
                     </div>
                 </ng-template>
                 <ng-template pTemplate="right">
-                    <span *ngIf="cajaAbierta" class="font-bold text-primary text-xl">
-                        Caja Actual Activa
-                    </span>
+                    <p-select *ngIf="cajaAbierta" 
+                                [options]="opcionesFiltroMov" 
+                                [(ngModel)]="filtroMovActual" 
+                                (onChange)="onFiltroMovChange()"
+                                optionLabel="label" 
+                                optionValue="value"
+                                [style]="{'min-width': '240px'}"
+                                placeholder="Filtrar movimientos">
+                        <ng-template let-opcion pTemplate="selectedItem">
+                            <i class="pi pi-filter mr-2"></i>
+                            <span>{{opcion.label}}</span>
+                        </ng-template>
+                    </p-select>
                 </ng-template>
             </p-toolbar>
 
-            <p-table #dt [value]="cajas" 
-            dataKey="id" 
-            expandableRows="true" 
-            [lazy]="true"
-            (onLazyLoad)="loadCajas($event)"
-            (onRowExpand)="onRowExpand($event)"
-            [paginator]="true" 
-            [rows]="rows" 
-            [totalRecords]="totalRecords" 
-            [loading]="loading" 
-            [rowsPerPageOptions]="rowsPerPageOptions"
-            [showCurrentPageReport]="true" 
-            currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} cajas"
-            [rowHover]="true">
+            <div class="card mb-4 border-2 border-primary border-round-xl shadow-2" *ngIf="cajaAbierta">
+                
+                <div class="flex flex-column md:flex-row md:align-items-center justify-content-between mb-4 pb-3 border-bottom-1 surface-border">
+                    <div class="flex align-items-center mb-3 md:mb-0">
+                        <i class="pi pi-box text-primary text-5xl mr-3"></i>
+                        <div>
+                            <span class="block text-2xl font-bold text-primary mb-1">Caja Actual (Abierta) - #{{cajaAbierta.id}}</span>
+                            <span class="text-600 font-medium"><i class="pi pi-clock mr-1"></i>Apertura: {{cajaAbierta.fechaApertura | date:'dd/MM/yyyy HH:mm'}}</span>
+                        </div>
+                    </div>
+                    <div class="text-left md:text-right bg-primary-reverse px-4 py-2 border-round">
+                        <span class="block text-sm text-600 mb-1 font-bold">Monto Inicial en Caja</span>
+                        <span class="text-2xl font-bold text-green-600">{{cajaAbierta.montoInicial | currency:'PEN':'symbol-narrow'}}</span>
+                    </div>
+                </div>
 
-                <ng-template pTemplate="header">
-                    <tr>
-                        <th style="width: 3rem"></th> 
-                        <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
-                        <th pSortableColumn="FechaApertura">Apertura <p-sortIcon field="FechaApertura"></p-sortIcon></th>
-                        <th pSortableColumn="FechaCierre">Cierre <p-sortIcon field="FechaCierre"></p-sortIcon></th>
-                        <th>Monto Inicial</th>
-                        <th>Monto Final</th>
-                        <th pSortableColumn="estado">Estado <p-sortIcon field="estado"></p-sortIcon></th>
-                    </tr>
-                </ng-template>
-
-                <ng-template pTemplate="body" let-caja let-expanded="expanded">
-                    <tr [ngClass]="{'bg-green-50': caja.estado === 'ABIERTA'}">
-                        <td>
-                            <button type="button" pButton pRipple [pRowToggler]="caja" 
-                                class="p-button-text p-button-rounded p-button-plain" 
-                                [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
-                            </button>
-                        </td>
-                        <td><span class="font-bold">#{{caja.id}}</span></td>
-                        <td>{{caja.FechaApertura | date:'dd/MM/yyyy HH:mm'}}</td>
-                        <td>{{caja.FechaCierre ? (caja.FechaCierre | date:'dd/MM/yyyy HH:mm') : '-'}}</td>
-                        <td class="text-green-600 font-bold">{{caja.montoInicial | currency:'PEN':'symbol-narrow'}}</td>
-                        <td class="text-blue-600 font-bold">{{caja.montoFinal !== null ? (caja.montoFinal | currency:'PEN':'symbol-narrow') : '-'}}</td>
-                        <td>
-                            <p-tag [severity]="caja.estado === 'ABIERTA' ? 'success' : 'secondary'" 
-                                   [value]="caja.estado">
-                            </p-tag>
-                        </td>
-                    </tr>
-                </ng-template>
-
-                <ng-template #expandedrow let-caja>
-                    <tr>
-                        <td colspan="7">
-                            <div class="p-3">
-                                <span class="font-bold text-lg block mb-3">Historial de Movimientos - Caja #{{caja.id}}</span>
-                                
-                                <p-table [value]="movimientosCache[caja.id]" dataKey="id" styleClass="p-datatable-sm">
-                                    <ng-template pTemplate="header">
-                                        <tr>
-                                            <th>Fecha/Hora</th>
-                                            <th>Tipo</th>
-                                            <th>Método de Pago</th>
-                                            <th>Referencia</th>
-                                            <th class="text-right">Monto</th>
-                                        </tr>
-                                    </ng-template>
-                                    <ng-template pTemplate="body" let-mov>
-                                        <tr>
-                                            <td>{{mov.fechaCreacion | date:'dd/MM/yyyy HH:mm'}}</td>
-                                            <td>
-                                                <p-tag [severity]="mov.tipo === 'INGRESO' ? 'success' : 'danger'" 
-                                                       [value]="mov.tipo">
-                                                </p-tag>
-                                            </td>
-                                            <td><span class="font-semibold">{{mov.metodoPago}}</span></td>
-                                            <td>
-                                                <span *ngIf="mov.idVenta" class="text-500 text-sm">Venta #{{mov.idVenta}}</span>
-                                                <span *ngIf="mov.idCompra" class="text-500 text-sm">Compra #{{mov.idCompra}}</span>
-                                                <span *ngIf="!mov.idVenta && !mov.idCompra" class="text-500 text-sm">Manual</span>
-                                            </td>
-                                            <td class="text-right font-bold" 
-                                                [ngClass]="{'text-green-500': mov.tipo === 'INGRESO', 'text-red-500': mov.tipo === 'EGRESO'}">
-                                                {{mov.tipo === 'INGRESO' ? '+' : '-'}} {{mov.monto | currency:'PEN':'symbol-narrow'}}
-                                            </td>
-                                        </tr>
-                                    </ng-template>
-                                    <ng-template pTemplate="emptymessage">
-                                        <tr>
-                                            <td colspan="5" class="text-center py-4">No hay movimientos registrados en esta caja.</td>
-                                        </tr>
-                                    </ng-template>
-                                </p-table>
+                <div class="grid mb-4">
+                    <div class="col-12 md:col-6">
+                        <div class="surface-ground p-3 border-round border-left-3 border-green-500 flex justify-content-between align-items-center">
+                            <div>
+                                <span class="block text-500 font-bold mb-1">Total Ingresos</span>
+                                <span class="text-xl font-bold text-green-600">+{{totalIngresosActivos | currency:'PEN':'symbol-narrow'}}</span>
                             </div>
-                        </td>
-                    </tr>
-                </ng-template>
-            </p-table>
-        </div>
+                            <div class="bg-green-100 border-round flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem">
+                                <i class="pi pi-arrow-up text-green-500 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 md:col-6">
+                        <div class="surface-ground p-3 border-round border-left-3 border-red-500 flex justify-content-between align-items-center">
+                            <div>
+                                <span class="block text-500 font-bold mb-1">Total Egresos</span>
+                                <span class="text-xl font-bold text-red-600">-{{totalEgresosActivos | currency:'PEN':'symbol-narrow'}}</span>
+                            </div>
+                            <div class="bg-red-100 border-round flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem">
+                                <i class="pi pi-arrow-down text-red-500 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <ng-container *ngIf="!faltaSucursal">
+                <h5 class="mt-0 mb-3"><i class="pi pi-list mr-2"></i>Movimientos de esta sesión</h5>
+                
+                <p-table [value]="movimientosCajaAbierta" styleClass="p-datatable-sm p-datatable-striped" [rowHover]="true" [paginator]="true" [rows]="10">
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Tipo</th>
+                            <th>Método de Pago</th>
+                            <th>Referencia</th>
+                            <th class="text-right">Monto</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-mov>
+                        <tr>
+                            <td>{{mov.fechaCreacion | date:'dd/MM/yyyy HH:mm'}}</td>
+                            <td>
+                                <p-tag [severity]="mov.tipo === 'INGRESO' ? 'success' : 'danger'" [value]="mov.tipo"></p-tag>
+                            </td>
+                            <td><span class="font-semibold">{{mov.metodoPago}}</span></td>
+                            <td>
+                                <span *ngIf="mov.idVenta" class="text-500 font-medium">Venta #{{mov.idVenta}}</span>
+                                <span *ngIf="mov.idCompra" class="text-500 font-medium">Compra #{{mov.idCompra}}</span>
+                                <span *ngIf="!mov.idVenta && !mov.idCompra" class="text-500 font-medium">Manual</span>
+                            </td>
+                            <td class="text-right font-bold text-lg" [ngClass]="{'text-green-500': mov.tipo === 'INGRESO', 'text-red-500': mov.tipo === 'EGRESO'}">
+                                {{mov.tipo === 'INGRESO' ? '+' : '-'}} {{mov.monto | currency:'PEN':'symbol-narrow'}}
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="emptymessage">
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-500">
+                                <i class="pi pi-info-circle text-2xl block mb-2"></i>
+                                No hay movimientos registrados para el filtro seleccionado.
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+
+            <div class="card px-6 py-6">
+                <h4 class="m-0 mb-4"><i class="pi pi-history mr-2"></i>Historial de Cajas</h4>
+                
+                <p-table #dt [value]="cajas" 
+                    dataKey="id" 
+                    expandableRows="true" 
+                    [lazy]="true"
+                    (onLazyLoad)="loadCajas($event)"
+                    (onRowExpand)="onRowExpand($event)"
+                    [paginator]="true" 
+                    [rows]="rows" 
+                    [totalRecords]="totalRecords" 
+                    [loading]="loading" 
+                    [rowsPerPageOptions]="rowsPerPageOptions"
+                    [showCurrentPageReport]="true" 
+                    currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} cajas"
+                    [rowHover]="true">
+
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th style="width: 3rem"></th> 
+                            <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
+                            <th pSortableColumn="fechaApertura">Apertura <p-sortIcon field="fechaApertura"></p-sortIcon></th>
+                            <th pSortableColumn="fechaCierre">Cierre <p-sortIcon field="fechaCierre"></p-sortIcon></th>
+                            <th>Monto Inicial</th>
+                            <th>Monto Final</th>
+                            <th pSortableColumn="estado">Estado <p-sortIcon field="estado"></p-sortIcon></th>
+                        </tr>
+                    </ng-template>
+
+                    <ng-template pTemplate="body" let-caja let-expanded="expanded">
+                        <tr [ngClass]="{'bg-blue-50': caja.estado === 'ABIERTA'}">
+                            <td>
+                                <button type="button" pButton pRipple [pRowToggler]="caja" 
+                                    class="p-button-text p-button-rounded p-button-plain" 
+                                    [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
+                                </button>
+                            </td>
+                            <td><span class="font-bold text-600">#{{caja.id}}</span></td>
+                            <td>{{caja.fechaApertura | date:'dd/MM/yyyy HH:mm'}}</td>
+                            <td>{{caja.fechaCierre ? (caja.fechaCierre | date:'dd/MM/yyyy HH:mm') : '-'}}</td>
+                            <td class="text-green-600 font-bold">{{caja.montoInicial | currency:'PEN':'symbol-narrow'}}</td>
+                            <td class="text-blue-600 font-bold">{{caja.montoFinal !== null ? (caja.montoFinal | currency:'PEN':'symbol-narrow') : '-'}}</td>
+                            <td>
+                                <p-tag [severity]="caja.estado === 'ABIERTA' ? 'success' : 'secondary'" [value]="caja.estado"></p-tag>
+                            </td>
+                        </tr>
+                    </ng-template>
+
+                    <ng-template #expandedrow let-caja>
+                        <tr>
+                            <td colspan="7">
+                                <div class="p-4 surface-ground border-round">
+                                    <span class="font-bold text-lg block mb-3 text-700">Movimientos de la Caja #{{caja.id}}</span>
+                                    
+                                    <p-table [value]="movimientosCache[caja.id]" dataKey="id" styleClass="p-datatable-sm bg-white border-round">
+                                        <ng-template pTemplate="header">
+                                            <tr>
+                                                <th>Fecha/Hora</th>
+                                                <th>Tipo</th>
+                                                <th>Método de Pago</th>
+                                                <th>Referencia</th>
+                                                <th class="text-right">Monto</th>
+                                            </tr>
+                                        </ng-template>
+                                        <ng-template pTemplate="body" let-mov>
+                                            <tr>
+                                                <td>{{mov.fechaCreacion | date:'dd/MM/yyyy HH:mm'}}</td>
+                                                <td>
+                                                    <p-tag [severity]="mov.tipo === 'INGRESO' ? 'success' : 'danger'" [value]="mov.tipo"></p-tag>
+                                                </td>
+                                                <td><span class="font-semibold">{{mov.metodoPago}}</span></td>
+                                                <td>
+                                                    <span *ngIf="mov.idVenta" class="text-500 text-sm font-medium">Venta #{{mov.idVenta}}</span>
+                                                    <span *ngIf="mov.idCompra" class="text-500 text-sm font-medium">Compra #{{mov.idCompra}}</span>
+                                                    <span *ngIf="!mov.idVenta && !mov.idCompra" class="text-500 text-sm font-medium">Manual</span>
+                                                </td>
+                                                <td class="text-right font-bold" [ngClass]="{'text-green-500': mov.tipo === 'INGRESO', 'text-red-500': mov.tipo === 'EGRESO'}">
+                                                    {{mov.tipo === 'INGRESO' ? '+' : '-'}} {{mov.monto | currency:'PEN':'symbol-narrow'}}
+                                                </td>
+                                            </tr>
+                                        </ng-template>
+                                        <ng-template pTemplate="emptymessage">
+                                            <tr>
+                                                <td colspan="5" class="text-center py-4 text-500">Cargando movimientos o no hay registros.</td>
+                                            </tr>
+                                        </ng-template>
+                                    </p-table>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+            
             <p-dialog [(visible)]="aperturaDialog" [style]="{width: '450px'}" header="Abrir Nueva Caja" [modal]="true" styleClass="p-fluid">
                 <ng-template pTemplate="content">
-                    <div [formGroup]="formApertura" class="field mt-3">
-                        <label for="montoInicial" class="font-bold">Monto Inicial (Efectivo en caja chica)</label>
-                        <p-inputNumber id="montoInicial" formControlName="montoInicial" mode="currency" currency="PEN" locale="es-PE" [autofocus]="true"></p-inputNumber>
-                        <small class="p-error" *ngIf="submittedApertura && formApertura.controls['montoInicial'].invalid">El monto inicial es requerido.</small>
+                    <div [formGroup]="formApertura" class="mt-2">
+                        <div class="field">
+                            <label for="montoInicial" class="font-bold block mb-2 text-primary">Monto Inicial (Efectivo en caja chica)</label>
+                            <p-inputNumber id="montoInicial" formControlName="montoInicial" mode="currency" currency="PEN" locale="es-PE" [autofocus]="true" styleClass="w-full"></p-inputNumber>
+                            <small class="p-error block mt-1" *ngIf="submittedApertura && formApertura.controls['montoInicial'].invalid">El monto inicial es requerido.</small>
+                        </div>
                     </div>
                 </ng-template>
                 <ng-template pTemplate="footer">
@@ -148,19 +238,19 @@
 
             <p-dialog [(visible)]="movimientoDialog" [style]="{width: '450px'}" header="Registrar Movimiento Manual" [modal]="true" styleClass="p-fluid">
                 <ng-template pTemplate="content">
-                    <div [formGroup]="formMovimiento">
-                        <div class="field mt-3">
-                            <label class="font-bold">Tipo de Movimiento</label>
-                            <p-select [options]="tiposMovimiento" formControlName="tipo" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                    <div [formGroup]="formMovimiento" class="mt-2">
+                        <div class="field mb-4">
+                            <label class="font-bold block mb-2">Tipo de Movimiento</label>
+                            <p-select [options]="tiposMovimiento" formControlName="tipo" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-select>
                         </div>
-                        <div class="field">
-                            <label class="font-bold">Método de Pago</label>
-                            <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                        <div class="field mb-4">
+                            <label class="font-bold block mb-2">Método de Pago</label>
+                            <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-select>
                         </div>
-                        <div class="field">
-                            <label for="montoMov" class="font-bold">Monto</label>
-                            <p-inputNumber id="montoMov" formControlName="monto" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
-                            <small class="p-error" *ngIf="submittedMovimiento && formMovimiento.controls['monto'].invalid">Monto válido requerido.</small>
+                        <div class="field mb-1">
+                            <label for="montoMov" class="font-bold block mb-2">Monto</label>
+                            <p-inputNumber id="montoMov" formControlName="monto" mode="currency" currency="PEN" locale="es-PE" styleClass="w-full"></p-inputNumber>
+                            <small class="p-error block mt-1" *ngIf="submittedMovimiento && formMovimiento.controls['monto'].invalid">Monto válido requerido.</small>
                         </div>
                     </div>
                 </ng-template>
@@ -173,14 +263,14 @@
             <p-dialog [(visible)]="confirmCierreDialog" header="Confirmar Cierre de Caja" [modal]="true" [style]="{width:'450px'}">
                 <div class="flex align-items-center justify-content-center">
                     <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)"></i>
-                    <span>¿Estás seguro de cerrar la caja actual? Se calculará el monto final automáticamente.</span>
+                    <span class="line-height-3">¿Estás seguro de cerrar la caja actual? Se calculará el monto final automáticamente y <b>ya no podrás registrar más movimientos</b> en esta sesión.</span>
                 </div>
                 <ng-template pTemplate="footer">
                     <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No, Cancelar" (click)="confirmCierreDialog = false"></button>
                     <button pButton pRipple icon="pi pi-check" class="p-button-danger" label="Sí, Cerrar Caja" (click)="ejecutarCierre()"></button>
                 </ng-template>
             </p-dialog>
-        </ng-container>
+        </div>
 
     </div>
 </div>

@@ -30,30 +30,31 @@
             </p-toolbar>
 
             <p-table #dt [value]="productos" 
-            dataKey="id" 
-            expandableRows="true" 
-            [lazy]="true"
-            (onLazyLoad)="loadProductos($event)"
-            (onRowExpand)="onRowExpand($event)"
-            [paginator]="true" 
-            [rows]="rows" 
-            [totalRecords]="totalRecords" 
-            [loading]="loading" 
-            [rowsPerPageOptions]="rowsPerPageOptions"
-            [showCurrentPageReport]="true" 
-            currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} productos"
-            [rowHover]="true">
+                dataKey="id" 
+                expandableRows="!enSucursalContexto" 
+                [lazy]="true"
+                (onLazyLoad)="loadProductos($event)"
+                (onRowExpand)="onRowExpand($event)"
+                [paginator]="true" 
+                [rows]="rows" 
+                [totalRecords]="totalRecords" 
+                [loading]="loading" 
+                [rowsPerPageOptions]="rowsPerPageOptions"
+                [showCurrentPageReport]="true" 
+                currentPageReportTemplate="Mostrando {first} al {last} de {totalRecords} productos"
+                [rowHover]="true">
 
                 <ng-template pTemplate="header">
                     <tr>
-                        <th style="width: 3rem" *ngIf="authService.hasRole('DUENO')"></th> 
+                        <th style="width: 3rem" *ngIf="!enSucursalContexto"></th> 
+                        
                         <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
                         <th pSortableColumn="categoria">Categoría <p-sortIcon field="categoria"></p-sortIcon></th>
                         <th pSortableColumn="unidadBase">Unidad <p-sortIcon field="unidadBase"></p-sortIcon></th>
                         <th pSortableColumn="seVende">Tipo <p-sortIcon field="seVende"></p-sortIcon></th>
                         <th pSortableColumn="precioUnitarioVenta">Precio <p-sortIcon field="precioUnitarioVenta"></p-sortIcon></th>
                         
-                        <th *ngIf="esEmpleado" pSortableColumn="stock">Stock <p-sortIcon field="stock"></p-sortIcon></th>
+                        <th *ngIf="enSucursalContexto" pSortableColumn="stock">Stock <p-sortIcon field="stock"></p-sortIcon></th>
                         
                         <th>Acciones</th>
                     </tr>
@@ -61,7 +62,7 @@
 
                 <ng-template pTemplate="body" let-product let-expanded="expanded">
                     <tr>
-                        <td *ngIf="authService.hasRole('DUENO')">
+                        <td *ngIf="!enSucursalContexto">
                             <button type="button" pButton pRipple [pRowToggler]="product" 
                                 class="p-button-text p-button-rounded p-button-plain" 
                                 [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'">
@@ -82,7 +83,7 @@
                             <span *ngIf="!product.seVende" class="text-500">-</span>
                         </td>
 
-                        <td *ngIf="esEmpleado">
+                        <td *ngIf="enSucursalContexto">
                             <span class="font-bold" [ngClass]="{'text-red-500': product.stock <= 0, 'text-green-500': product.stock > 0}">
                                 {{product.stock || 0}}
                             </span>
@@ -141,62 +142,63 @@
             </p-table>
         </div>
 
-        <p-dialog [(visible)]="productoDialog" [style]="{width: '600px'}" header="Detalles del Producto" [modal]="true" styleClass="p-fluid">
+        <p-dialog [(visible)]="productoDialog" [style]="{width: '700px'}" header="Detalles del Producto" [modal]="true" styleClass="p-fluid">
             <ng-template pTemplate="content">
-                <div [formGroup]="form">
+                <div [formGroup]="form" class="mt-2">
                     
                     <div class="formgrid grid">
                         <div class="field col-12 md:col-8">
-                            <label for="nombre" class="font-bold">Nombre del Producto</label>
-                            <input type="text" pInputText id="nombre" formControlName="nombre" 
+                            <label for="nombre" class="font-bold block mb-2">Nombre del Producto</label>
+                            <input type="text" pInputText id="nombre" formControlName="nombre" class="w-full"
                                    [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['nombre'].invalid}"/>
-                            <small class="p-error" *ngIf="submitted && form.controls['nombre'].invalid">Nombre requerido.</small>
+                            <small class="p-error block mt-1" *ngIf="submitted && form.controls['nombre'].invalid">Nombre requerido.</small>
                         </div>
                         <div class="field col-12 md:col-4">
-                            <label for="unidadBase" class="font-bold">Unidad Base</label>
-                            <input type="text" pInputText id="unidadBase" formControlName="unidadBase" placeholder="Ej. UNIDAD, KG, LT"/>
-                            <small class="p-error" *ngIf="submitted && form.controls['unidadBase'].invalid">Requerido.</small>
+                            <label for="unidadBase" class="font-bold block mb-2">Unidad Base</label>
+                            <input type="text" pInputText id="unidadBase" formControlName="unidadBase" placeholder="Ej. UNIDAD, KG, LT" class="w-full"/>
+                            <small class="p-error block mt-1" *ngIf="submitted && form.controls['unidadBase'].invalid">Requerido.</small>
                         </div>
                     </div>
 
                     <div class="formgrid grid">
                         <div class="field col-12 md:col-6">
-                            <label for="categoria" class="font-bold">Categoría</label>
+                            <label for="categoria" class="font-bold block mb-2">Categoría</label>
                             <p-select [options]="categorias" formControlName="idCategoria" 
                                         optionLabel="nombre" optionValue="id" 
                                         placeholder="Seleccione una categoría"
+                                        appendTo="body" styleClass="w-full"
                                         [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['idCategoria'].invalid}">
                             </p-select>
-                            <small class="p-error" *ngIf="submitted && form.controls['idCategoria'].invalid">Categoría requerida.</small>
+                            <small class="p-error block mt-1" *ngIf="submitted && form.controls['idCategoria'].invalid">Categoría requerida.</small>
                         </div>
                         
-                        <div class="field col-12 md:col-6 flex flex-column">
-                            <label class="font-bold mb-2">¿Es para Venta?</label>
-                            <div class="flex align-items-center h-full">
-                                <p-toggleswitch formControlName="seVende"></p-toggleswitch>
-                                <span class="ml-2">{{ form.get('seVende')?.value ? 'Sí, se vende al público' : 'No, es insumo interno' }}</span>
-                            </div>
+                        <div class="field" *ngIf="enSucursalContexto && !producto.id">
+                            <label for="stock" class="font-bold block mb-2 text-primary">Stock Inicial en tu Sucursal (Opcional)</label>
+                            <p-inputNumber id="stock" formControlName="stock" [min]="0" suffix=" u." styleClass="w-full"></p-inputNumber>
+                            
+                            <small class="block mt-1 text-500" *ngIf="recetaArray.length === 0">
+                                Deja en 0 si no deseas ingresar stock en este momento.
+                            </small>
+                            
+                            <small class="block mt-1 text-red-500 font-bold" *ngIf="recetaArray.length > 0">
+                                <i class="pi pi-info-circle mr-1"></i>
+                                Stock inicial está bloqueado para productos con receta.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="field col-12 md:col-6 flex flex-column">
+                        <label class="font-bold block mb-2">¿Es para Venta?</label>
+                        <div class="flex align-items-center h-full">
+                            <p-toggleswitch formControlName="seVende"></p-toggleswitch>
+                            <span class="ml-2">{{ form.get('seVende')?.value ? 'Sí, se vende al público' : 'No, es insumo interno' }}</span>
                         </div>
                     </div>
 
                     <div class="field" *ngIf="form.get('seVende')?.value">
-                        <label for="precio" class="font-bold">Precio de Venta</label>
-                        <p-inputNumber id="precio" formControlName="precioUnitarioVenta" mode="currency" currency="PEN" locale="es-PE"></p-inputNumber>
-                        <small class="p-error" *ngIf="submitted && form.controls['precioUnitarioVenta'].invalid">El precio es requerido para productos de venta.</small>
-                    </div>
-
-                    <div class="field" *ngIf="esEmpleado && !producto.id">
-                        <label for="stock" class="font-bold text-primary">Stock Inicial en tu Sucursal (Opcional)</label>
-                        <p-inputNumber id="stock" formControlName="stock" [min]="0" suffix=" u."></p-inputNumber>
-                        
-                        <small class="block mt-1 text-500" *ngIf="recetaArray.length === 0">
-                            Deja en 0 si no deseas ingresar stock en este momento.
-                        </small>
-                        
-                        <small class="block mt-1 text-red-500 font-bold" *ngIf="recetaArray.length > 0">
-                            <i class="pi pi-info-circle mr-1"></i>
-                            El stock inicial está bloqueado porque los productos con receta se preparan al momento.
-                        </small>
+                        <label for="precio" class="font-bold block mb-2">Precio de Venta</label>
+                        <p-inputNumber id="precio" formControlName="precioUnitarioVenta" mode="currency" currency="PEN" locale="es-PE" styleClass="w-full"></p-inputNumber>
+                        <small class="p-error block mt-1" *ngIf="submitted && form.controls['precioUnitarioVenta'].invalid">El precio es requerido para productos de venta.</small>
                     </div>
 
                     <p-divider></p-divider>
@@ -209,26 +211,26 @@
                     <div formArrayName="receta">
                         <div *ngFor="let item of recetaArray.controls; let i=index" [formGroupName]="i" class="formgrid grid align-items-end mb-2">
                             
-                            <div class="field col-7 mb-0">
-                                <label *ngIf="i===0">Insumo</label>
+                            <div class="field col-12 md:col-7 mb-2 md:mb-0">
+                                <label *ngIf="i===0" class="font-bold block mb-2">Insumo</label>
                                 <p-select [options]="insumosDisponibles" formControlName="insumoId" 
                                             optionLabel="nombre" optionValue="id" 
                                             placeholder="Buscar insumo..." [filter]="true" filterBy="nombre"
-                                            appendTo="body">
+                                            appendTo="body" styleClass="w-full">
                                 </p-select>
                             </div>
                             
-                            <div class="field col-3 mb-0">
-                                <label *ngIf="i===0">Cantidad</label>
-                                <p-inputNumber formControlName="cantidadUsada" [minFractionDigits]="2" suffix=" u."></p-inputNumber>
+                            <div class="field col-12 md:col-3 mb-2 md:mb-0">
+                                <label *ngIf="i===0" class="font-bold block mb-2">Cantidad</label>
+                                <p-inputNumber formControlName="cantidadUsada" [minFractionDigits]="2" suffix=" u." styleClass="w-full"></p-inputNumber>
                             </div>
 
-                            <div class="field col-2 mb-0">
-                                <button pButton pRipple icon="pi pi-trash" class="p-button-danger p-button-text" (click)="removeRecetaItem(i)"></button>
+                            <div class="field col-12 md:col-2 mb-2 md:mb-0 flex justify-content-center">
+                                <button pButton pRipple icon="pi pi-trash" class="p-button-danger p-button-rounded p-button-text" pTooltip="Quitar Insumo" (click)="removeRecetaItem(i)"></button>
                             </div>
                         </div>
                         
-                        <div *ngIf="recetaArray.length === 0" class="text-center text-500 py-2 bg-gray-50 border-round">
+                        <div *ngIf="recetaArray.length === 0" class="text-center text-500 py-4 bg-gray-50 border-round">
                             <small>No hay insumos agregados a la receta.</small>
                         </div>
                     </div>
@@ -265,7 +267,7 @@
         </p-dialog>
 
         <p-dialog [(visible)]="presentacionesDialog" 
-          [style]="{width: '650px'}" 
+          [style]="{width: '750px'}" 
           [header]="'Presentaciones: ' + productoSeseleccionadoParaPresentacion?.nombre" 
           [modal]="true" 
           styleClass="p-fluid"
@@ -273,62 +275,64 @@
             
             <ng-template pTemplate="content">
         
-                <div class="card p-3 mb-3 bg-gray-50" [formGroup]="formPresentacion">
-                    <span class="font-bold block mb-2 text-primary">Agregar Nueva Presentación</span>
+                <div class="card p-3 mb-4 mt-2 bg-gray-50 border-round" [formGroup]="formPresentacion">
+                    <span class="font-bold block mb-3 text-primary"><i class="pi pi-plus-circle mr-2"></i>Agregar Nueva Presentación</span>
                     
                     <div class="formgrid grid align-items-end">
                         
-                        <div [class]="productoSeseleccionadoParaPresentacion.seVende ? 'field col-4 mb-0' : 'field col-7 mb-0'">
-                            <label>Nombre (ej. Caja x12)</label>
-                            <input type="text" pInputText formControlName="nombre" placeholder="Nombre">
+                        <div [class]="productoSeseleccionadoParaPresentacion?.seVende ? 'field col-12 md:col-5 mb-2 md:mb-0' : 'field col-12 md:col-7 mb-2 md:mb-0'">
+                            <label class="font-bold block mb-2">Nombre (ej. Caja x12)</label>
+                            <input type="text" pInputText formControlName="nombre" placeholder="Nombre" class="w-full">
                         </div>
 
-                        <div class="field col-3 mb-0">
-                            <label>Factor (Unidades)</label>
-                            <p-inputNumber formControlName="factor" [min]="1" placeholder="Cant."></p-inputNumber>
+                        <div class="field col-12 md:col-3 mb-2 md:mb-0">
+                            <label class="font-bold block mb-2">Factor (Unidades)</label>
+                            <p-inputNumber formControlName="factor" [min]="1" placeholder="Cant." styleClass="w-full"></p-inputNumber>
                         </div>
                         
-                        <div class="field col-3 mb-0" *ngIf="productoSeseleccionadoParaPresentacion.seVende">
-                            <label for="precioVenta" class="font-bold">P. Venta</label>
+                        <div class="field col-12 md:col-2 mb-2 md:mb-0" *ngIf="productoSeseleccionadoParaPresentacion?.seVende">
+                            <label for="precioVenta" class="font-bold block mb-2">P. Venta</label>
                             <p-inputNumber id="precioVenta" formControlName="precioVenta" 
                                            mode="currency" currency="PEN" locale="es-PE" 
-                                           placeholder="S/ 0.00">
+                                           placeholder="S/ 0.00" styleClass="w-full">
                             </p-inputNumber>
                         </div>
 
-                        <div class="field col-2 mb-0">
-                            <button pButton icon="pi pi-plus" label="Add" 
-                                    class="p-button-sm" 
+                        <div class="field col-12 md:col-2 mb-2 md:mb-0 flex justify-content-center">
+                            <button pButton icon="pi pi-plus" label="Añadir" 
+                                    class="p-button-primary w-full md:w-auto" 
                                     [disabled]="formPresentacion.invalid"
                                     (click)="agregarPresentacion()">
                             </button>
                         </div>
                     </div>
                     
-                    <small class="block mt-2 text-500">
-                        * Factor: Cantidad de unidades base que contiene esta presentación.
+                    <small class="block mt-3 text-500">
+                        <i class="pi pi-info-circle mr-1"></i>
+                        El <b>Factor</b> es la cantidad de unidades base que contiene esta presentación (Ej: Si la unidad base es 1 botella, una caja de 12 tiene factor 12).
                     </small>
                 </div>
 
                 <p-table [value]="listaPresentaciones" [rowHover]="true" styleClass="p-datatable-sm">
                     <ng-template pTemplate="header">
                         <tr>
-                            <th>Nombre</th>
+                            <th>Nombre de la Presentación</th>
                             <th class="text-center">Factor</th>
-                            <th class="text-center" *ngIf="productoSeseleccionadoParaPresentacion.seVende">P. Venta</th>
-                            <th class="text-center">Acción</th>
+                            <th class="text-right" *ngIf="productoSeseleccionadoParaPresentacion?.seVende">P. Venta</th>
+                            <th class="text-center" style="width: 5rem;">Acción</th>
                         </tr>
                     </ng-template>
                     <ng-template pTemplate="body" let-pres>
                         <tr>
                             <td>{{pres.nombre}}</td>
                             <td class="text-center font-bold">{{pres.factor}}</td>
-                            <td class="text-center font-bold" *ngIf="productoSeseleccionadoParaPresentacion.seVende">
+                            <td class="text-right font-bold" *ngIf="productoSeseleccionadoParaPresentacion?.seVende">
                                 {{pres.precioVenta | currency:'PEN':'symbol-narrow'}}
                             </td>
                             <td class="text-center">
                                 <button pButton pRipple icon="pi pi-trash" 
                                         class="p-button-rounded p-button-danger p-button-text p-button-sm" 
+                                        pTooltip="Eliminar Presentación"
                                         (click)="borrarPresentacion(pres)">
                                 </button>
                             </td>
@@ -336,8 +340,8 @@
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
                         <tr>
-                            <td [attr.colspan]="productoSeseleccionadoParaPresentacion.seVende ? 4 : 3" class="text-center p-3 text-500">
-                                No hay presentaciones adicionales registradas.
+                            <td [attr.colspan]="productoSeseleccionadoParaPresentacion?.seVende ? 4 : 3" class="text-center p-4 text-500">
+                                No hay presentaciones adicionales registradas para este producto.
                             </td>
                         </tr>
                     </ng-template>

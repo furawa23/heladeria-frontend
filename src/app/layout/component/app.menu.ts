@@ -62,12 +62,6 @@ export class AppMenu implements OnInit {
                     { label: 'Ventas', icon: 'pi pi-fw pi-wallet', routerLink: ['/ventas'] },
                     { label: 'Caja', icon: 'pi pi-fw pi-inbox', routerLink: ['/caja'] }
                 ]
-            },
-            {
-                label: 'Sesión',
-                items: [
-                    { label: 'Cerrar Sesión', icon: 'pi pi-fw pi-sign-out', routerLink: ['/auth/login'] }
-                ]
             }
         ];
     }

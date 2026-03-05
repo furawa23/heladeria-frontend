@@ -82,35 +82,42 @@
 
             <p-dialog [(visible)]="ventaDialog" [style]="{width: '900px'}" [header]="esVentaRapida ? 'Nueva Venta Rápida' : 'Venta - Mesa ' + mesaSeleccionada?.numero" [modal]="true" styleClass="p-fluid">
                 <ng-template pTemplate="content">
-                    <div [formGroup]="form" class="grid formgrid mb-3">
+                    <div [formGroup]="form" class="grid formgrid mb-3 mt-2">
                         <div class="field col-12 md:col-6">
-                            <label for="nro">N° Comprobante</label>
-                            <input type="text" pInputText id="nro" formControlName="numeroComprobante"/>
+                            <label for="nro" class="font-bold block mb-2">N° Comprobante</label>
+                            <input type="text" pInputText id="nro" formControlName="numeroComprobante" class="w-full"/>
                         </div>
                         <div class="field col-12 md:col-6">
-                            <label>Estado Inicial</label>
-                            <input type="text" pInputText formControlName="estado" readonly/>
+                            <label class="font-bold block mb-2">Estado Inicial</label>
+                            <input type="text" pInputText formControlName="estado" readonly class="w-full"/>
                         </div>
                     </div>
 
                     <p-divider align="left"><b>Agregar Productos</b></p-divider>
 
-                    <div [formGroup]="detalleForm" class="grid formgrid p-3 surface-ground border-round mb-3">
-                        <div class="field col-12 md:col-5">
-                            <label>Producto</label>
+                    <div [formGroup]="detalleForm" class="grid formgrid p-3 surface-ground border-round mb-3 align-items-end">
+                        <div class="field col-12 md:col-5 mb-2 md:mb-0">
+                            <label class="font-bold block mb-2">Producto</label>
                             <p-select [options]="productos" formControlName="producto" optionLabel="nombre" 
-                                (onChange)="onProductoChange($event)" placeholder="Buscar producto..." [filter]="true"></p-select>
+                                (onChange)="onProductoChange($event)" placeholder="Buscar producto..." 
+                                [filter]="true" appendTo="body" styleClass="w-full"></p-select>
                         </div>
-                        <div class="field col-12 md:col-4">
-                            <label>Presentación</label>
-                            <p-select [options]="presentacionesFiltradas" formControlName="presentacion" optionLabel="nombre" placeholder="(Opcional, usa precio base si está vacío)"></p-select>
+                        
+                        <div class="field col-12 md:col-4 mb-2 md:mb-0">
+                            <label class="font-bold block mb-2">Presentación</label>
+                            <p-select [options]="presentacionesFiltradas" formControlName="presentacion" 
+                                optionLabel="nombre" placeholder="(Opcional)" 
+                                appendTo="body" styleClass="w-full" pTooltip="Usa el precio base si se deja vacío"></p-select>
                         </div>
-                        <div class="field col-6 md:col-2">
-                            <label>Cantidad</label>
-                            <p-inputNumber formControlName="cantidad" [min]="1" [showButtons]="true"></p-inputNumber>
+                        
+                        <div class="field col-6 md:col-2 mb-2 md:mb-0">
+                            <label class="font-bold block mb-2">Cantidad</label>
+                            <p-inputNumber formControlName="cantidad" [min]="1" inputStyleClass="w-full"></p-inputNumber>
                         </div>
-                        <div class="field col-12 md:col-1 flex align-items-end">
-                            <button pButton icon="pi pi-plus" class="p-button-primary" [disabled]="detalleForm.invalid" (click)="agregarDetalle()"></button>
+                        
+                        <div class="field col-6 md:col-1 mb-2 md:mb-0 flex justify-content-center">
+                            <button pButton icon="pi pi-plus" class="p-button-primary p-button-rounded" 
+                                [disabled]="detalleForm.invalid" (click)="agregarDetalle()" pTooltip="Agregar"></button>
                         </div>
                     </div>
 
@@ -119,17 +126,17 @@
                             <tr>
                                 <th>Producto</th>
                                 <th>Presentación</th>
-                                <th class="text-right">Cant.</th>
+                                <th class="text-center">Cant.</th>
                                 <th class="text-right">P. Unit</th>
                                 <th class="text-right">Subtotal</th>
-                                <th></th>
+                                <th style="width: 4rem"></th>
                             </tr>
                         </ng-template>
                         <ng-template pTemplate="body" let-det let-i="rowIndex">
                             <tr>
                                 <td>{{det.nombreProducto}}</td>
-                                <td>{{det.nombrePresentacion}}</td>
-                                <td class="text-right">{{det.cantidad}}</td>
+                                <td>{{det.nombrePresentacion || '-'}}</td>
+                                <td class="text-center">{{det.cantidad}}</td>
                                 <td class="text-right">{{det.precioUnitario | currency:'PEN':'S/ '}}</td>
                                 <td class="text-right font-bold">{{det.subtotal | currency:'PEN':'S/ '}}</td>
                                 <td class="text-center">
@@ -142,6 +149,11 @@
                                 <td colspan="4" class="text-right font-bold text-xl">TOTAL:</td>
                                 <td class="text-right font-bold text-xl">{{ calcularTotalVenta() | currency:'PEN':'S/ ' }}</td>
                                 <td></td>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="emptymessage">
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-500">Agregue productos a la venta.</td>
                             </tr>
                         </ng-template>
                     </p-table>
@@ -164,21 +176,21 @@
                 </ng-template>
             </p-dialog>
 
-            <p-dialog [(visible)]="cobrarDialog" header="Cobrar Venta #{{venta?.id}}" [modal]="true" [style]="{width:'500px'}">
+            <p-dialog [(visible)]="cobrarDialog" header="Cobrar Venta #{{venta?.id}}" [modal]="true" [style]="{width:'600px'}" styleClass="p-fluid">
                 <div class="mb-4">
-                    <h3 class="mt-0 text-center text-primary">Total a Cobrar: {{venta?.total | currency:'PEN':'symbol-narrow'}}</h3>
+                    <h3 class="mt-0 text-center text-primary border-bottom-1 border-300 pb-3">Total a Cobrar: {{venta?.total | currency:'PEN':'S/ '}}</h3>
                     
-                    <div class="formgrid grid align-items-end" [formGroup]="pagoForm">
-                        <div class="field col-5 mb-0">
-                            <label>Método</label>
-                            <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+                    <div class="formgrid grid align-items-end mt-4" [formGroup]="pagoForm">
+                        <div class="field col-12 md:col-5 mb-2 md:mb-0">
+                            <label class="font-bold block mb-2">Método de Pago</label>
+                            <p-select [options]="metodosPago" formControlName="metodoPago" optionLabel="label" optionValue="value" appendTo="body" styleClass="w-full"></p-select>
                         </div>
-                        <div class="field col-5 mb-0">
-                            <label>Monto</label>
-                            <p-inputNumber formControlName="monto" mode="currency" currency="PEN" locale="es-PE" [min]="0.1"></p-inputNumber>
+                        <div class="field col-12 md:col-5 mb-2 md:mb-0">
+                            <label class="font-bold block mb-2">Monto</label>
+                            <p-inputNumber formControlName="monto" mode="currency" currency="PEN" locale="es-PE" [min]="0.1" styleClass="w-full"></p-inputNumber>
                         </div>
-                        <div class="field col-2 mb-0">
-                            <button pButton icon="pi pi-plus" class="p-button-success p-button-sm" [disabled]="pagoForm.invalid" (click)="agregarPago()"></button>
+                        <div class="field col-12 md:col-2 mb-2 md:mb-0 flex justify-content-center">
+                            <button pButton icon="pi pi-plus" label="Añadir" class="p-button-success p-button-rounded w-full md:w-auto" [disabled]="pagoForm.invalid" (click)="agregarPago()"></button>
                         </div>
                     </div>
                 </div>
@@ -194,21 +206,21 @@
                     <ng-template pTemplate="body" let-pago let-i="rowIndex">
                         <tr>
                             <td class="font-bold">{{pago.metodoPago}}</td>
-                            <td class="text-right">{{pago.monto | currency:'PEN':'symbol-narrow'}}</td>
-                            <td>
-                                <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" (click)="eliminarPago(i)"></button>
+                            <td class="text-right">{{pago.monto | currency:'PEN':'S/ '}}</td>
+                            <td class="text-center">
+                                <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-rounded p-button-sm" (click)="eliminarPago(i)"></button>
                             </td>
                         </tr>
                     </ng-template>
                     <ng-template pTemplate="summary">
-                        <div class="flex justify-content-between align-items-center">
-                            <span>Restante: <span class="text-red-500">{{montoRestante | currency:'PEN':'symbol-narrow'}}</span></span>
-                            <span>Pagado: <span class="text-green-500 font-bold">{{totalPagado | currency:'PEN':'symbol-narrow'}}</span></span>
+                        <div class="flex justify-content-between align-items-center py-2">
+                            <span class="text-lg">Falta cobrar: <span class="text-red-500 font-bold">{{montoRestante | currency:'PEN':'S/ '}}</span></span>
+                            <span class="text-lg">Abonado: <span class="text-green-500 font-bold">{{totalPagado | currency:'PEN':'S/ '}}</span></span>
                         </div>
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
                         <tr>
-                            <td colspan="3" class="text-center py-3 text-500">No se ha agregado ningún método de pago aún.</td>
+                            <td colspan="3" class="text-center py-4 text-500">No se ha agregado ningún método de pago aún.</td>
                         </tr>
                     </ng-template>
                 </p-table>
