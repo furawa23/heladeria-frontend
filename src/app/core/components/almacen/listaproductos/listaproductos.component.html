@@ -1,5 +1,12 @@
 <div class="grid">
     <div class="col-12">
+        <div class="card px-6 py-3">
+            <h4 class="m-0 mr-2">Productos</h4>
+        </div>
+    </div>
+</div>
+<div class="grid">
+    <div class="col-12">
         <div class="card px-6 py-6">
             <p-toast></p-toast>
             
@@ -11,21 +18,38 @@
                 </ng-template>
                 
                 <ng-template pTemplate="right">
-                    <p-select [options]="opcionesFiltro" 
-                                [(ngModel)]="filtroActual" 
-                                (onChange)="onFiltroChange()"
-                                optionLabel="label" 
-                                optionValue="value"
-                                [style]="{'min-width': '200px'}"
-                                placeholder="Filtrar productos">
-                        <ng-template let-opcion pTemplate="selectedItem">
-                            <i class="pi pi-filter mr-2"></i>
-                            <span>{{opcion.label}}</span>
-                        </ng-template>
-                        <ng-template let-opcion pTemplate="item">
-                            <span>{{opcion.label}}</span>
-                        </ng-template>
-                    </p-select>
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                        
+                        <p-select [options]="opcionesFiltro" 
+                                    [(ngModel)]="filtroActual" 
+                                    (onChange)="onFiltroChange()"
+                                    optionLabel="label" 
+                                    optionValue="value"
+                                    [style]="{'min-width': '200px'}"
+                                    placeholder="Filtrar productos">
+                            <ng-template let-opcion pTemplate="selectedItem">
+                                <span>{{opcion.label}}</span>
+                            </ng-template>
+                            <ng-template let-opcion pTemplate="item">
+                                <span>{{opcion.label}}</span>
+                            </ng-template>
+                        </p-select>
+            
+                        <button pButton pRipple icon="pi pi-filter-slash" 
+                                class="p-button-outlined p-button-secondary" 
+                                pTooltip="Limpiar Filtros"
+                                tooltipPosition="top"
+                                (click)="clearFilters()">
+                        </button>
+            
+                        <button pButton pRipple icon="pi pi-refresh" 
+                                class="p-button-outlined p-button-help" 
+                                pTooltip="Refrescar Tabla"
+                                tooltipPosition="top"
+                                (click)="refreshTable()">
+                        </button>
+                        
+                    </div>
                 </ng-template>
             </p-toolbar>
 
@@ -54,8 +78,7 @@
                         <th pSortableColumn="seVende">Tipo <p-sortIcon field="seVende"></p-sortIcon></th>
                         <th pSortableColumn="precioUnitarioVenta">Precio <p-sortIcon field="precioUnitarioVenta"></p-sortIcon></th>
                         
-                        <th *ngIf="enSucursalContexto" pSortableColumn="stock">Stock <p-sortIcon field="stock"></p-sortIcon></th>
-                        
+                        <th *ngIf="enSucursalContexto">Stock</th>                        
                         <th>Acciones</th>
                     </tr>
                 </ng-template>
@@ -287,14 +310,14 @@
 
                         <div class="field col-12 md:col-3 mb-2 md:mb-0">
                             <label class="font-bold block mb-2">Factor (Unidades)</label>
-                            <p-inputNumber formControlName="factor" [min]="1" placeholder="Cant." styleClass="w-full"></p-inputNumber>
+                            <p-inputNumber formControlName="factor" [min]="1" placeholder="Cant." inputStyleClass="w-full"></p-inputNumber>
                         </div>
                         
                         <div class="field col-12 md:col-2 mb-2 md:mb-0" *ngIf="productoSeseleccionadoParaPresentacion?.seVende">
                             <label for="precioVenta" class="font-bold block mb-2">P. Venta</label>
                             <p-inputNumber id="precioVenta" formControlName="precioVenta" 
                                            mode="currency" currency="PEN" locale="es-PE" 
-                                           placeholder="S/ 0.00" styleClass="w-full">
+                                           placeholder="S/ 0.00" inputStyleClass="w-full">
                             </p-inputNumber>
                         </div>
 

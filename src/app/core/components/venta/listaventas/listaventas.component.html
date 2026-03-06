@@ -12,16 +12,39 @@
 
         <ng-container *ngIf="!faltaSucursal">
             <div class="card px-6 py-4 mb-4">
-                <div class="flex justify-content-between align-items-center mb-4">
-                    <h4 class="m-0">Mapa de Mesas (POS)</h4>
-                    <div>
-                        <button pButton pRipple label="Venta Rápida (Sin Mesa)" icon="pi pi-bolt" class="p-button-warning mr-2" (click)="openVentaRapida()"></button>
-                        <button pButton pRipple icon="pi pi-refresh" pTooltip="Refrescar Mesas" class="p-button-help p-button-outlined" (click)="loadMesas()"></button>
-                    </div>
-                </div>
+                <p-toolbar styleClass="mb-4">
+                    <ng-template pTemplate="left">
+                        <div class="flex align-items-center">
+                            <h4 class="m-0 mr-4">Mapa de Mesas (POS)</h4>
+                            <button pButton pRipple label="Venta Rápida (Sin Mesa)" icon="pi pi-bolt" class="p-button-warning" (click)="openVentaRapida()"></button>
+                        </div>
+                    </ng-template>
+                    
+                    <ng-template pTemplate="right">
+                        <div class="flex flex-wrap gap-2 align-items-center">
+                            <p-select [options]="opcionesEstadoMesa" 
+                                        [(ngModel)]="filtroEstadoMesa" 
+                                        (onChange)="onFiltroMesaChange()"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        [style]="{'min-width': '160px'}"
+                                        placeholder="Estado">
+                                <ng-template let-opcion pTemplate="selectedItem">
+                                    <span>{{opcion.label}}</span>
+                                </ng-template>
+                                <ng-template let-opcion pTemplate="item">
+                                    <span>{{opcion.label}}</span>
+                                </ng-template>
+                            </p-select>
+
+                            <button pButton pRipple icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary" pTooltip="Limpiar Filtro" tooltipPosition="top" (click)="clearFiltroMesa()"></button>
+                            <button pButton pRipple icon="pi pi-refresh" class="p-button-outlined p-button-help" pTooltip="Refrescar Mesas" tooltipPosition="top" (click)="refreshMesas()"></button>
+                        </div>
+                    </ng-template>
+                </p-toolbar>
 
                 <div class="grid grid-nogutter w-full">
-                    <div class="col-12 sm:col-4 md:col-3 lg:col-2 p-2" *ngFor="let mesa of mesas">
+                    <div class="col-12 sm:col-4 md:col-3 lg:col-2 p-2" *ngFor="let mesa of mesasFiltradas">
                         <div class="mesa-card card flex flex-column align-items-center justify-content-center p-3 border-round-xl shadow-2 border-2 cursor-pointer transition-all transition-duration-200 hover:-translate-y-1"
                              [ngClass]="{'bg-green-100 border-green-200 hover:shadow-green-400': mesa.libre, 'bg-red-200 border-red-300 hover:shadow-red-400': !mesa.libre}"
                              (click)="seleccionarMesa(mesa)">
@@ -34,11 +57,40 @@
                         </div>
                     </div>
                 </div>
-                <div *ngIf="mesas.length === 0" class="text-center text-500 p-3">No hay mesas configuradas.</div>
+                <div *ngIf="mesasFiltradas.length === 0" class="text-center text-500 p-4 border-round surface-ground">
+                    <i class="pi pi-info-circle mr-2"></i> No hay mesas que coincidan con la búsqueda.
+                </div>
             </div>
 
             <div class="card px-6 py-6">
-                <h4 class="m-0 mb-4">Historial de Ventas</h4>
+                <p-toolbar styleClass="mb-4">
+                    <ng-template pTemplate="left">
+                        <h4 class="m-0">Historial de Ventas</h4>
+                    </ng-template>
+                    
+                    <ng-template pTemplate="right">
+                        <div class="flex flex-wrap gap-2 align-items-center">
+                            <p-select [options]="opcionesEstadoVenta" 
+                                        [(ngModel)]="filtroEstadoVenta" 
+                                        (onChange)="onFiltroVentaChange()"
+                                        optionLabel="label" 
+                                        optionValue="value"
+                                        [style]="{'min-width': '180px'}"
+                                        placeholder="Filtrar por estado">
+                                <ng-template let-opcion pTemplate="selectedItem">
+                                    <span>{{opcion.label}}</span>
+                                </ng-template>
+                                <ng-template let-opcion pTemplate="item">
+                                    <span>{{opcion.label}}</span>
+                                </ng-template>
+                            </p-select>
+
+                            <button pButton pRipple icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary" pTooltip="Limpiar Filtro" tooltipPosition="top" (click)="clearFiltroVenta()"></button>
+                            <button pButton pRipple icon="pi pi-refresh" class="p-button-outlined p-button-help" pTooltip="Refrescar Tabla" tooltipPosition="top" (click)="refreshVentas()"></button>
+                        </div>
+                    </ng-template>
+                </p-toolbar>
+
                 <p-table #dt [value]="ventas" [lazy]="true" (onLazyLoad)="loadVentas($event)"
                     [paginator]="true" [rows]="rows" [totalRecords]="totalRecords" [loading]="loadingVentas"
                     [rowsPerPageOptions]="[10, 20, 30]" [showCurrentPageReport]="true"
@@ -72,7 +124,9 @@
                             <td>
                                 <button *ngIf="v.estado === 'CREADA'" pButton pRipple icon="pi pi-pencil" pTooltip="Editar" class="p-button-rounded p-button-success mr-2" (click)="editVenta(v)"></button>
                                 <button *ngIf="v.estado === 'CREADA'" pButton pRipple icon="pi pi-money-bill" pTooltip="Cobrar" class="p-button-rounded p-button-info mr-2" (click)="openCobrarDialog(v)"></button>
-                                <button *ngIf="v.estado !== 'CANCELADA'" pButton pRipple icon="pi pi-times-circle" pTooltip="Cancelar" class="p-button-rounded p-button-danger mr-2" (click)="openActionDialog(v, 'CANCELAR')"></button>
+                                
+                                <button *ngIf="v.estado !== 'CANCELADA' && v.estado !== 'PAGADA'" pButton pRipple icon="pi pi-times-circle" pTooltip="Cancelar" class="p-button-rounded p-button-danger mr-2" (click)="openActionDialog(v, 'CANCELAR')"></button>
+                                
                                 <button pButton pRipple icon="pi pi-trash" pTooltip="Eliminar" class="p-button-rounded p-button-secondary" (click)="openActionDialog(v, 'ELIMINAR')"></button>
                             </td>
                         </tr>
@@ -95,7 +149,7 @@
 
                     <p-divider align="left"><b>Agregar Productos</b></p-divider>
 
-                    <div [formGroup]="detalleForm" class="grid formgrid p-3 surface-ground border-round mb-3 align-items-end">
+                    <div [formGroup]="detalleForm" class="grid formgrid p-3 surface-ground border-round mb-3 align-items-start">
                         <div class="field col-12 md:col-5 mb-2 md:mb-0">
                             <label class="font-bold block mb-2">Producto</label>
                             <p-select [options]="productos" formControlName="producto" optionLabel="nombre" 
@@ -106,18 +160,29 @@
                         <div class="field col-12 md:col-4 mb-2 md:mb-0">
                             <label class="font-bold block mb-2">Presentación</label>
                             <p-select [options]="presentacionesFiltradas" formControlName="presentacion" 
+                                (onChange)="onPresentacionChange($event)"
                                 optionLabel="nombre" placeholder="(Opcional)" 
                                 appendTo="body" styleClass="w-full" pTooltip="Usa el precio base si se deja vacío"></p-select>
                         </div>
                         
                         <div class="field col-6 md:col-2 mb-2 md:mb-0">
                             <label class="font-bold block mb-2">Cantidad</label>
-                            <p-inputNumber formControlName="cantidad" [min]="1" inputStyleClass="w-full"></p-inputNumber>
+                            <p-inputNumber formControlName="cantidad" [min]="1" [max]="stockDisponible !== null ? stockDisponible : 9999" 
+                                inputStyleClass="w-full"
+                                [ngClass]="{'ng-invalid ng-dirty': detalleForm.get('cantidad')?.invalid && (detalleForm.get('cantidad')?.dirty || detalleForm.get('cantidad')?.touched)}">
+                            </p-inputNumber>
+                            
+                            <small class="text-red-500 font-bold block mt-1" *ngIf="detalleForm.get('cantidad')?.hasError('max')">
+                                Stock superado (Máx: {{stockDisponible}})
+                            </small>
+                            <small class="text-green-600 font-bold block mt-1" *ngIf="stockDisponible !== null && !detalleForm.get('cantidad')?.hasError('max')">
+                                Disponible: {{stockDisponible}}
+                            </small>
                         </div>
                         
-                        <div class="field col-6 md:col-1 mb-2 md:mb-0 flex justify-content-center">
+                        <div class="field col-6 md:col-1 mb-2 md:mb-0 flex justify-content-center align-items-center mt-4">
                             <button pButton icon="pi pi-plus" class="p-button-primary p-button-rounded" 
-                                [disabled]="detalleForm.invalid" (click)="agregarDetalle()" pTooltip="Agregar"></button>
+                                [disabled]="detalleForm.invalid || stockDisponible === 0" (click)="agregarDetalle()" pTooltip="Agregar"></button>
                         </div>
                     </div>
 

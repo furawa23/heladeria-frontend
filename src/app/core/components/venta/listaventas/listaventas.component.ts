@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { SharedModule } from '../../../../shared/shared.module';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
+import { Table } from 'primeng/table';
 
 import { 
   VentaResponse, VentaRequest, MesaResponse, CobrarVentaRequest, PagoVentaRequest
@@ -11,7 +12,7 @@ import { VentaService } from '../../../../services/venta.service';
 import { MesaService } from '../../../../services/mesa.service';
 import { ProductoService } from '../../../../services/producto.service'; 
 import { PresentacionProductoService } from '../../../../services/presproducto.service';
-import { AuthService } from '../../../../services/auth.service'; // <-- NUEVO IMPORT
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-listaventas',
@@ -23,8 +24,28 @@ import { AuthService } from '../../../../services/auth.service'; // <-- NUEVO IM
 })
 export class ListaVentas implements OnInit {
 
+  @ViewChild('dt') dt!: Table;
+
   // --- NUEVA BANDERA ---
   faltaSucursal: boolean = false;
+
+  // --- FILTROS DE MESAS ---
+  opcionesEstadoMesa = [
+    { label: 'Todas las Mesas', value: 'TODAS' },
+    { label: 'Libres', value: 'LIBRES' },
+    { label: 'Ocupadas', value: 'OCUPADAS' }
+  ];
+  filtroEstadoMesa: string = 'TODAS';
+  mesasFiltradas: MesaResponse[] = []; 
+
+  // --- FILTROS DE VENTAS ---
+  opcionesEstadoVenta = [
+    { label: 'Todas las Ventas', value: 'TODAS' },
+    { label: 'Creadas', value: 'CREADA' },
+    { label: 'Pagadas', value: 'PAGADA' },
+    { label: 'Canceladas', value: 'CANCELADA' }
+  ];
+  filtroEstadoVenta: string = 'TODAS';
 
   // Listas de datos
   ventas: VentaResponse[] = [];
@@ -36,6 +57,7 @@ export class ListaVentas implements OnInit {
   venta!: VentaResponse;
   mesaSeleccionada: MesaResponse | null = null;
   esVentaRapida: boolean = false;
+  stockDisponible: number | null = null; // Control de stock visual
 
   // Diálogos
   ventaDialog: boolean = false;
@@ -69,25 +91,22 @@ export class ListaVentas implements OnInit {
     private mesaService: MesaService,
     private productoService: ProductoService,         
     private presentacionService: PresentacionProductoService, 
-    private authService: AuthService, // <-- INYECTADO
+    private authService: AuthService, 
     private messageService: MessageService,
     private cdr: ChangeDetectorRef,
     private fb: FormBuilder
   ) {}
 
   ngOnInit(): void {
-    // 1. Validar si el usuario requiere seleccionar una sucursal
     const user = this.authService.getUser();
     const sucursalTemporal = localStorage.getItem('sucursalActiva');
 
-    // Si el usuario NO tiene idSucursal (es dueño/superadmin) Y no ha elegido una
     if (!user?.idSucursal && !sucursalTemporal) {
       this.faltaSucursal = true;
       this.loadingVentas = false;
-      return; // Detenemos la carga de mesas y productos
+      return; 
     }
 
-    // 2. Si todo está bien, continuamos
     this.initForms();
     this.loadMesas();
     this.loadProductos();
@@ -111,13 +130,87 @@ export class ListaVentas implements OnInit {
     });
   }
 
+  // ==========================================
+  // LÓGICA DE MESAS
+  // ==========================================
   loadMesas() {
     this.mesaService.listarTodas(0, 100, 'numero,asc').subscribe({
       next: (data) => {
         this.mesas = data.content;
+        this.aplicarFiltroMesas(); 
         this.cdr.detectChanges();
       }
     });
+  }
+
+  aplicarFiltroMesas() {
+    if (this.filtroEstadoMesa === 'LIBRES') {
+      this.mesasFiltradas = this.mesas.filter(m => m.libre);
+    } else if (this.filtroEstadoMesa === 'OCUPADAS') {
+      this.mesasFiltradas = this.mesas.filter(m => !m.libre);
+    } else {
+      this.mesasFiltradas = [...this.mesas];
+    }
+  }
+
+  onFiltroMesaChange() {
+    this.aplicarFiltroMesas();
+  }
+
+  clearFiltroMesa() {
+    this.filtroEstadoMesa = 'TODAS';
+    this.aplicarFiltroMesas();
+  }
+
+  refreshMesas() {
+    this.loadMesas();
+  }
+
+  // ==========================================
+  // LÓGICA DE VENTAS
+  // ==========================================
+  loadVentas(event: any) {
+    this.loadingVentas = true;
+    const page = (event?.first ?? 0) / (event?.rows ?? this.rows);
+    const size = event?.rows ?? this.rows;
+    
+    let sortStr = '';
+    if (event && event.sortField) {
+        sortStr = `${event.sortField},${event.sortOrder === 1 ? 'asc' : 'desc'}`;
+    }
+  
+    this.ventaService.listarTodas(page, size, sortStr).subscribe({
+      next: (data) => {
+        let resultados = data.content;
+        
+        if (this.filtroEstadoVenta !== 'TODAS') {
+            resultados = resultados.filter((v: VentaResponse) => v.estado === this.filtroEstadoVenta);
+        }
+
+        this.ventas = resultados;
+        this.totalRecords = this.filtroEstadoVenta !== 'TODAS' ? resultados.length : data.totalElements;
+        this.loadingVentas = false;
+        this.cdr.detectChanges();
+      },
+      error: () => this.loadingVentas = false
+    });
+  }
+
+  onFiltroVentaChange() {
+    this.refreshVentas();
+  }
+
+  clearFiltroVenta() {
+    this.filtroEstadoVenta = 'TODAS';
+    this.refreshVentas();
+  }
+
+  refreshVentas() {
+    if (this.dt) {
+      this.dt.reset();
+    } else {
+      this.loadVentas({ first: 0, rows: this.rows });
+    }
   }
 
   loadProductos() {
@@ -133,37 +226,46 @@ export class ListaVentas implements OnInit {
     });
   }
 
-  loadVentas(event: any) {
-    this.loadingVentas = true;
-    const page = (event?.first ?? 0) / (event?.rows ?? 10);
-    const size = event?.rows ?? 10;
-    
-    let sortStr = '';
-    if (event && event.sortField) {
-        sortStr = `${event.sortField},${event.sortOrder === 1 ? 'asc' : 'desc'}`;
-    }
-  
-    this.ventaService.listarTodas(page, size, sortStr).subscribe({
-      next: (data) => {
-        this.ventas = data.content;
-        this.totalRecords = data.totalElements;
-        this.loadingVentas = false;
-        this.cdr.detectChanges();
-      },
-      error: () => this.loadingVentas = false
-    });
-  }
-
   onProductoChange(event: any) {
     const prod: ProductoResponse = event.value; 
     this.presentacionesFiltradas = [];
-    this.detalleForm.patchValue({ presentacion: null });
+    this.detalleForm.patchValue({ presentacion: null, cantidad: 1 });
 
     if (prod) {
         this.presentacionService.listarPorProducto(prod.id, 0, 100).subscribe({
             next: (data) => this.presentacionesFiltradas = data.content
         });
+        this.actualizarValidadorCantidad(prod, null);
+    } else {
+        this.stockDisponible = null;
+        this.detalleForm.get('cantidad')?.clearValidators();
+        this.detalleForm.get('cantidad')?.setValidators([Validators.required, Validators.min(1)]);
+        this.detalleForm.get('cantidad')?.updateValueAndValidity();
     }
+  }
+
+  onPresentacionChange(event: any) {
+    const pres = event.value;
+    const prod = this.detalleForm.get('producto')?.value;
+    this.actualizarValidadorCantidad(prod, pres);
+  }
+
+  actualizarValidadorCantidad(prod: ProductoResponse, pres: any) {
+    if (!prod) return;
+
+    let maxStockBase = prod.stock || 0; 
+    let factor = pres ? pres.factor : 1;
+    
+    this.stockDisponible = Math.floor(maxStockBase / factor);
+
+    const cantidadCtrl = this.detalleForm.get('cantidad');
+    cantidadCtrl?.setValidators([
+        Validators.required, 
+        Validators.min(1), 
+        Validators.max(this.stockDisponible) 
+    ]);
+    
+    cantidadCtrl?.updateValueAndValidity(); 
   }
 
   agregarDetalle() {
@@ -174,6 +276,7 @@ export class ListaVentas implements OnInit {
     const pres = val.presentacion; 
 
     const precioAplicar = pres ? pres.precioVenta : prod.precioUnitarioVenta;
+    const cantidadARestar = val.cantidad * (pres ? pres.factor : 1);
 
     const nuevoDetalle = {
       idProducto: prod.id,
@@ -182,16 +285,39 @@ export class ListaVentas implements OnInit {
       nombrePresentacion: pres?.nombre || '-', 
       cantidad: val.cantidad,
       precioUnitario: precioAplicar,
-      subtotal: val.cantidad * precioAplicar
+      subtotal: val.cantidad * precioAplicar,
+      cantidadRestadaMemoria: cantidadARestar // Guardamos esto por si lo elimina
     };
 
     this.detallesActuales.push(nuevoDetalle);
+    
+    // REDUCCIÓN EN MEMORIA
+    if (prod) {
+        prod.stock -= cantidadARestar;
+    }
+
     this.detalleForm.reset({ cantidad: 1 });
     this.presentacionesFiltradas = []; 
+    this.stockDisponible = null;
   }
 
   eliminarDetalle(index: number) {
+    const detalle = this.detallesActuales[index];
+    
+    // Devolver el stock en memoria al producto original
+    const prodOriginal = this.productos.find(p => p.id === detalle.idProducto);
+    if (prodOriginal && detalle.cantidadRestadaMemoria) {
+        prodOriginal.stock += detalle.cantidadRestadaMemoria;
+    }
+
     this.detallesActuales.splice(index, 1);
+
+    // Re-evaluar el validador por si el usuario está viendo el mismo producto
+    const prodActualForm = this.detalleForm.get('producto')?.value;
+    const presActualForm = this.detalleForm.get('presentacion')?.value;
+    if (prodActualForm) {
+        this.actualizarValidadorCantidad(prodActualForm, presActualForm);
+    }
   }
 
   calcularTotalVenta(): number {
@@ -221,6 +347,7 @@ export class ListaVentas implements OnInit {
     this.form.reset({ estado: 'CREADA' });
     this.detalleForm.reset({ cantidad: 1 });
     this.ventaDialog = true;
+    this.stockDisponible = null; // Reiniciar visual
   }
 
   editVenta(venta: VentaResponse) {
@@ -240,9 +367,11 @@ export class ListaVentas implements OnInit {
 
     this.detallesActuales = venta.detalles.map(d => ({
       ...d,
-      nombrePresentacion: d.nombrePresentacion || '-'
+      nombrePresentacion: d.nombrePresentacion || '-',
+      cantidadRestadaMemoria: 0 // Si edita, no afectamos en memoria lo que ya viene guardado
     }));
 
+    this.stockDisponible = null;
     this.ventaDialog = true;
   }
 
@@ -289,6 +418,7 @@ export class ListaVentas implements OnInit {
     this.ventaDialog = false;
     this.loadVentas(null);
     this.loadMesas(); 
+    this.loadProductos(); // Recargar productos para restaurar el stock real de BD
   }
 
   // --- NUEVA LÓGICA DE COBROS ---
@@ -297,7 +427,6 @@ export class ListaVentas implements OnInit {
     this.venta = { ...venta };
     this.pagosActuales = [];
     
-    // Autocompletamos por defecto con EFECTIVO por el total de la venta
     this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: venta.total });
     this.cobrarDialog = true;
   }
@@ -381,6 +510,7 @@ export class ListaVentas implements OnInit {
         this.messageService.add({severity:'success', summary:'Procesado', detail:`Venta ${this.actionType.toLowerCase()}a con éxito`});
         this.loadVentas(null);
         this.loadMesas(); 
+        this.loadProductos(); // Recargar productos para restaurar stock en la vista
       },
       error: () => this.messageService.add({severity:'error', summary:'Error', detail:`Fallo al ${this.actionType.toLowerCase()}`})
     });

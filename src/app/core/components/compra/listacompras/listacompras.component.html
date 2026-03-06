@@ -1,5 +1,12 @@
 <div class="grid">
     <div class="col-12">
+        <div class="card px-6 py-3">
+            <h4 class="m-0 mr-2">Compras</h4>
+        </div>
+    </div>
+</div>
+<div class="grid">
+    <div class="col-12">
 
         <div class="card flex flex-column align-items-center justify-content-center py-8" *ngIf="faltaSucursal">
             <i class="pi pi-store text-primary mb-4" style="font-size: 5rem;"></i>
@@ -18,22 +25,40 @@
                         <button pButton pRipple label="Nueva Compra" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
                     </div>
                 </ng-template>
+                
                 <ng-template pTemplate="right">
-                    <p-select [options]="opcionesEstado" 
-                                [(ngModel)]="estadoActual" 
-                                (onChange)="onEstadoChange()"
-                                optionLabel="label" 
-                                optionValue="value"
-                                [style]="{'min-width': '200px'}"
-                                placeholder="Filtrar por estado">
-                        <ng-template let-opcion pTemplate="selectedItem">
-                            <i class="pi pi-filter mr-2"></i>
-                            <span>{{opcion.label}}</span>
-                        </ng-template>
-                        <ng-template let-opcion pTemplate="item">
-                            <span>{{opcion.label}}</span>
-                        </ng-template>
-                    </p-select>
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                        
+                        <p-select [options]="opcionesEstado" 
+                                    [(ngModel)]="estadoActual" 
+                                    (onChange)="onEstadoChange()"
+                                    optionLabel="label" 
+                                    optionValue="value"
+                                    [style]="{'min-width': '200px'}"
+                                    placeholder="Filtrar por estado">
+                            <ng-template let-opcion pTemplate="selectedItem">
+                                <span>{{opcion.label}}</span>
+                            </ng-template>
+                            <ng-template let-opcion pTemplate="item">
+                                <span>{{opcion.label}}</span>
+                            </ng-template>
+                        </p-select>
+            
+                        <button pButton pRipple icon="pi pi-filter-slash" 
+                                class="p-button-outlined p-button-secondary" 
+                                pTooltip="Limpiar Filtros"
+                                tooltipPosition="top"
+                                (click)="clearFilters()">
+                        </button>
+            
+                        <button pButton pRipple icon="pi pi-refresh" 
+                                class="p-button-outlined p-button-help" 
+                                pTooltip="Refrescar Tabla"
+                                tooltipPosition="top"
+                                (click)="refreshTable()">
+                        </button>
+            
+                    </div>
                 </ng-template>
             </p-toolbar>
 

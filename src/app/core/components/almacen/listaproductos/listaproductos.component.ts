@@ -234,6 +234,11 @@ export class ListaProductos implements OnInit {
     }
   }
 
+  clearFilters() {
+    this.filtroActual = 'TODOS';
+    this.onFiltroChange();
+  }
+
   refreshTable() {
     this.stockCache = {}; 
     if (this.dt) {

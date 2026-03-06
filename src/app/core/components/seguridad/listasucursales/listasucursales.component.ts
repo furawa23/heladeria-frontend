@@ -30,6 +30,13 @@ export class Listasucursales implements OnInit {
   // Dropdowns del formulario
   empresasFormOptions: EmpresaResponse[] = [];
 
+  opcionesEstado = [
+    { label: 'Todas', value: 'TODAS' },
+    { label: 'Activas', value: 'ACTIVAS' },
+    { label: 'Inactivas', value: 'INACTIVAS' }
+  ];
+  filtroEstado: string = 'TODAS';
+
   sucursalDialog: boolean = false;
   deleteSucursalDialog: boolean = false;
 
@@ -154,8 +161,12 @@ export class Listasucursales implements OnInit {
     this.refreshTable();
   }
 
+  onEstadoChange() {
+    this.refreshTable();
+  }
+
   clearFilters() {
-      // Solo el SUPERADMIN puede limpiar filtros
+      // Solo el SUPERADMIN puede limpiar la empresa de la URL
       if (this.isSuperAdmin) {
         this.selectedEmpresa = null;
         this.router.navigate([], {
@@ -163,8 +174,11 @@ export class Listasucursales implements OnInit {
             queryParams: { empresaId: null },
             queryParamsHandling: 'merge'
         });
-        this.refreshTable();
       }
+      
+      // Todos pueden resetear el estado
+      this.filtroEstado = 'TODAS'; 
+      this.refreshTable();
   }
 
   openNew(){

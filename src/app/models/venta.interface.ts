@@ -14,7 +14,8 @@ export interface DetVentaRequest {
   cantidad: number,
   precioUnitario: number,
   idPresentacion: number,
-  idProducto: number
+  idProducto: number,
+  idsSabores?: number[]
 }
 
 export interface DetVentaResponse {
@@ -25,7 +26,8 @@ export interface DetVentaResponse {
   nombrePresentacion: string,
   cantidad: number,
   precioUnitario: number,
-  subtotal: number
+  subtotal: number,
+  sabores?: string[]
 }
 
 export interface VentaRequest {

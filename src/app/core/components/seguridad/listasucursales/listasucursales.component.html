@@ -1,5 +1,12 @@
 <div class="grid">
     <div class="col-12">
+        <div class="card px-6 py-3">
+            <h4 class="m-0 mr-2">Sucursales</h4>
+        </div>
+    </div>
+</div>
+<div class="grid">
+    <div class="col-12">
         <div class="card px-6 py-6">
             <p-toast></p-toast>
             
@@ -9,8 +16,52 @@
                         <button pButton pRipple label="Nueva Sucursal" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
                     </div>
                 </ng-template>
+                
                 <ng-template pTemplate="right">
-                    <button pButton pRipple label="Refrescar" icon="pi pi-refresh" class="p-button-help" (click)="refreshTable()"></button>
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                        
+                        <p-select *ngIf="isSuperAdmin"
+                                    [options]="empresasFilterOptions" 
+                                    [(ngModel)]="selectedEmpresa" 
+                                    optionLabel="razonSocial" 
+                                    optionValue="id"
+                                    [showClear]="true"
+                                    (onChange)="onEmpresaFilterChange()"
+                                    placeholder="Todas las empresas"
+                                    [style]="{'min-width': '200px'}">
+                            <ng-template let-opcion pTemplate="selectedItem">
+                                <i class="pi pi-building mr-2"></i>
+                                <span>{{opcion.razonSocial}}</span>
+                            </ng-template>
+                        </p-select>
+            
+                        <p-select [options]="opcionesEstado" 
+                                    [(ngModel)]="filtroEstado" 
+                                    (onChange)="onEstadoChange()"
+                                    optionLabel="label" 
+                                    optionValue="value"
+                                    [style]="{'min-width': '160px'}"
+                                    placeholder="Estado">
+                            <ng-template let-opcion pTemplate="selectedItem">
+                                <span>{{opcion.label}}</span>
+                            </ng-template>
+                        </p-select>
+            
+                        <button pButton pRipple icon="pi pi-filter-slash" 
+                                class="p-button-outlined p-button-secondary" 
+                                pTooltip="Limpiar Filtros"
+                                tooltipPosition="top"
+                                (click)="clearFilters()">
+                        </button>
+            
+                        <button pButton pRipple icon="pi pi-refresh" 
+                                class="p-button-outlined p-button-help" 
+                                pTooltip="Refrescar Tabla"
+                                tooltipPosition="top"
+                                (click)="refreshTable()">
+                        </button>
+                        
+                    </div>
                 </ng-template>
             </p-toolbar>
 

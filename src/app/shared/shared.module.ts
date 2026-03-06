@@ -23,6 +23,7 @@ import { DividerModule } from 'primeng/divider';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { DataViewModule } from 'primeng/dataview';
 import { StyleClassModule } from 'primeng/styleclass';
+import { MultiSelectModule } from 'primeng/multiselect';
 
 @NgModule({
   imports: [
@@ -50,7 +51,8 @@ import { StyleClassModule } from 'primeng/styleclass';
     DividerModule,
     ToggleSwitchModule,
     DataViewModule,
-    StyleClassModule
+    StyleClassModule,
+    MultiSelectModule
   ],
   exports: [
     CommonModule,
@@ -77,7 +79,8 @@ import { StyleClassModule } from 'primeng/styleclass';
     DividerModule,
     ToggleSwitchModule,
     DataViewModule,
-    StyleClassModule
+    StyleClassModule,
+    MultiSelectModule
   ]
 })
 export class SharedModule {}

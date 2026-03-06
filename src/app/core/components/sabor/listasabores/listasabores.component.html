@@ -1,0 +1,146 @@
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-3">
+            <h4 class="m-0 mr-2">Gestión de Sabores</h4>
+        </div>
+    </div>
+</div>
+<div class="grid">
+    <div class="col-12">
+        <div class="card px-6 py-6">
+            <p-toast></p-toast>
+            
+            <p-toolbar styleClass="mb-4">
+                <ng-template pTemplate="left">
+                    <div class="my-2">
+                        <button pButton pRipple label="Nuevo Sabor" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="right">
+                    <button pButton pRipple icon="pi pi-refresh" 
+                    class="p-button-outlined p-button-help" 
+                    pTooltip="Refrescar Tabla"
+                    tooltipPosition="top"
+                    (click)="refreshTable()">
+                    </button>
+                </ng-template>
+            </p-toolbar>
+
+            <p-table #dt [value]="sabores"
+            [lazy]="true"
+            (onLazyLoad)="loadSabores($event)"
+            [paginator]="true" 
+            [rows]="rows" 
+            [totalRecords]="totalRecords" 
+            [loading]="loading"
+            [rowsPerPageOptions]="rowsPerPageOptions" 
+            [showCurrentPageReport]="true" 
+            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros" 
+            [rowHover]="true" 
+            dataKey="id">
+
+            <ng-template pTemplate="header">
+                <tr>
+                    <th pSortableColumn="id">ID <p-sortIcon field="id"></p-sortIcon></th>
+                    <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
+                    <th pSortableColumn="precioAdicional">Precio Extra <p-sortIcon field="precioAdicional"></p-sortIcon></th>
+                    <th pSortableColumn="createdAt">Modificado por ultima vez <p-sortIcon field="createdAt"></p-sortIcon></th>
+                    <th>Acciones</th>
+                </tr>
+            </ng-template>
+        
+            <ng-template pTemplate="body" let-sabor>
+                <tr>
+                    <td>{{sabor.id}}</td>
+                    <td>{{sabor.nombre}}</td>
+                    <td>{{sabor.precioAdicional | currency:'PEN':'symbol'}}</td>
+                    <td>{{sabor.updatedAt | date:'short'}}</td>
+                    <td>
+                       <div class="flex">
+                            <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editSabor(sabor)"></button>
+                            <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning" (click)="deleteSabor(sabor)"></button>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            </p-table>
+        </div>
+
+        <p-dialog [(visible)]="saborDialog" 
+        [style]="{width: '500px'}" 
+        [contentStyle]="{'min-height': '400px', 'overflow': 'visible'}" 
+        header="Detalles del Sabor" 
+        [modal]="true" 
+        styleClass="p-fluid">
+  
+  <ng-template pTemplate="content">
+      <div [formGroup]="form">
+          <div class="field mb-3">
+              <label for="nombre" class="font-bold">Nombre del Sabor</label>
+              <input type="text" pInputText id="nombre" formControlName="nombre" 
+                     class="w-full" 
+                     [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['nombre'].invalid}"/>
+              <small class="p-error block" *ngIf="submitted && form.controls['nombre'].hasError('required')">El nombre es requerido.</small>
+          </div>
+
+          <div class="field mb-3">
+              <label for="precioAdicional" class="font-bold">Precio Adicional (S/.)</label>
+              <p-inputNumber id="precioAdicional" formControlName="precioAdicional" 
+                             mode="currency" currency="PEN" locale="es-PE"
+                             [minFractionDigits]="2"
+                             [ngClass]="{'ng-invalid ng-dirty' : submitted && form.controls['precioAdicional'].invalid}">
+              </p-inputNumber>
+              <small class="p-error block" *ngIf="submitted && form.controls['precioAdicional'].hasError('required')">El precio es requerido.</small>
+              <small class="text-color-secondary block mt-1">Si este sabor no cuesta más, déjalo en 0.00</small>
+          </div>
+
+          <div class="field mb-3 mt-4">
+              <label for="productosAsignados" class="font-bold">Disponible en los productos:</label>
+              
+              <p-multiSelect [options]="productosDisponibles" 
+                             formControlName="productosAsignados" 
+                             optionLabel="nombre" 
+                             optionValue="id" 
+                             defaultLabel="Seleccione los productos" 
+                             display="chip"
+                             [filter]="true"
+                             filterPlaceHolder="Buscar producto..."
+                             emptyMessage="No hay productos disponibles"
+                             [virtualScroll]="true" [virtualScrollItemSize]="40"
+                             appendTo="body"> 
+              </p-multiSelect>
+              
+              <small class="text-color-secondary block mt-1">Selecciona en qué productos se podrá elegir este sabor (Ej: Cono Doble, Vaso 1L).</small>
+          </div>
+      </div>
+  </ng-template>
+
+  <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
+      <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveSabor()"></button>
+  </ng-template>
+</p-dialog>
+
+        <p-dialog [(visible)]="deleteSaborDialog" header="Confirmar" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem"></i>
+                <span *ngIf="sabor">¿Estás seguro de ELIMINAR el sabor <b>{{sabor.nombre}}</b>?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="deleteSaborDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmDelete()"></button>
+            </ng-template>
+        </p-dialog>
+
+        <p-dialog [(visible)]="saveConfirmDialog" header="Confirmar Guardado" [modal]="true" [style]="{width:'450px'}">
+            <div class="flex align-items-center justify-content-center">
+                <i class="pi pi-question-circle mr-3" style="font-size: 2rem; color: var(--primary-color)"></i>
+                <span>¿Estás seguro de guardar los cambios y asignaciones?</span>
+            </div>
+            <ng-template pTemplate="footer">
+                <button pButton pRipple icon="pi pi-times" class="p-button-text" label="No" (click)="saveConfirmDialog = false"></button>
+                <button pButton pRipple icon="pi pi-check" class="p-button-text" label="Sí" (click)="confirmSave()"></button>
+            </ng-template>
+        </p-dialog>
+    </div>
+</div>

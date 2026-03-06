@@ -1,5 +1,12 @@
 <div class="grid">
     <div class="col-12">
+        <div class="card px-6 py-3">
+            <h4 class="m-0 mr-2">Categorías</h4>
+        </div>
+    </div>
+</div>
+<div class="grid">
+    <div class="col-12">
         <div class="card px-6 py-6">
             <p-toast></p-toast>
             
@@ -10,7 +17,12 @@
                     </div>
                 </ng-template>
                 <ng-template pTemplate="right">
-                    <button pButton pRipple label="Refrescar" icon="pi pi-refresh" class="p-button-help" (click)="refreshTable()"></button>
+                    <button pButton pRipple icon="pi pi-refresh" 
+                    class="p-button-outlined p-button-help" 
+                    pTooltip="Refrescar Tabla"
+                    tooltipPosition="top"
+                    (click)="refreshTable()">
+                    </button>
                 </ng-template>
             </p-toolbar>
 

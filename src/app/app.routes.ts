@@ -14,6 +14,7 @@ import { ListaVentas } from './core/components/venta/listaventas/listaventas.com
 import { CajaComponent } from './core/components/caja/caja.component';
 import { roleGuard } from './core/auth/guards/role.guard';
 import { Access } from './core/auth/components/access';
+import { ListaSabores } from './core/components/sabor/listasabores/listasabores.component';
 
 export const routes: Routes = [
     // 1. RUTA PÚBLICA (Login)
@@ -63,6 +64,11 @@ export const routes: Routes = [
             {
                 path: 'productos',
                 component: ListaProductos,
+                canActivate: [roleGuard],
+                data: { roles: ['DUENO', 'EMPLEADO'] }
+            },            {
+                path: 'sabores',
+                component: ListaSabores,
                 canActivate: [roleGuard],
                 data: { roles: ['DUENO', 'EMPLEADO'] }
             },

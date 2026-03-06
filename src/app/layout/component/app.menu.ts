@@ -43,6 +43,7 @@ export class AppMenu implements OnInit {
                 visible: this.authService.hasAnyRole(['DUENO','EMPLEADO']),
                 items: [
                     { label: 'Categorías', icon: 'pi pi-fw pi-tags', routerLink: ['/categorias'], visible: this.authService.hasRole('DUENO') },
+                    { label: 'Sabores', icon: 'pi pi-fw pi-sparkles', routerLink: ['/sabores'],visible: this.authService.hasAnyRole(['DUENO','EMPLEADO']) },
                     { label: 'Productos', icon: 'pi pi-fw pi-box', routerLink: ['/productos'],visible: this.authService.hasAnyRole(['DUENO','EMPLEADO']) },
                     { label: 'Mesas', icon: 'pi pi-fw pi-table', routerLink: ['/mesas'], visible: this.authService.hasRole('DUENO') }
                 ]

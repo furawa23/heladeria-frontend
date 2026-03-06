@@ -126,11 +126,20 @@ export class ListaCompras implements OnInit {
   }
 
   onEstadoChange() {
+    this.refreshTable();
+  }
+
+  refreshTable() {
     if (this.dt) {
-      this.dt.reset();
+      this.dt.reset(); // Esto dispara el onLazyLoad y recarga la tabla desde la página 0
     } else {
       this.loadCompras({ first: 0, rows: this.rows });
     }
+  }
+
+  clearFilters() {
+    this.estadoActual = 'TODAS';
+    this.refreshTable();
   }
 
   loadCompras(event: any) {

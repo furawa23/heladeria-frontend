@@ -1,5 +1,12 @@
 <div class="grid">
     <div class="col-12">
+        <div class="card px-6 py-3">
+            <h4 class="m-0 mr-2">Usuarios</h4>
+        </div>
+    </div>
+</div>
+<div class="grid">
+    <div class="col-12">
         <div class="card px-6 py-6">
             <p-toast></p-toast>
             
@@ -9,44 +16,55 @@
                         <button pButton pRipple label="Nuevo Usuario" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
                     </div>
                 </ng-template>
+                
                 <ng-template pTemplate="right">
-                    <button pButton pRipple label="Refrescar" icon="pi pi-refresh" class="p-button-help" (click)="refreshTable()"></button>
-                </ng-template>
-            </p-toolbar>
-
-            <div class="card mb-3 p-fluid">
-                <h5>Filtros de Búsqueda</h5>
-                <div class="formgrid grid">
-                    
-                    <div class="field col-12 md:col-4" *ngIf="isSuperAdmin">
-                        <label for="filtroEmpresa">Empresa</label>
-                        <p-select [options]="empresasFilterOptions" 
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                        
+                        <p-select *ngIf="isSuperAdmin"
+                                    [options]="empresasFilterOptions" 
                                     [(ngModel)]="selectedEmpresa" 
                                     optionLabel="razonSocial" 
                                     optionValue="id"
                                     [showClear]="true"
                                     (onChange)="onEmpresaFilterChange()"
-                                    placeholder="Todas las empresas"></p-select>
-                    </div>
-
-                    <div [class]="isSuperAdmin ? 'field col-12 md:col-4' : 'field col-12 md:col-6'">
-                        <label for="filtroSucursal">Sucursal</label>
+                                    placeholder="Todas las empresas"
+                                    [style]="{'min-width': '200px'}">
+                            <ng-template let-opcion pTemplate="selectedItem">
+                                <i class="pi pi-building mr-2"></i>
+                                <span>{{opcion.razonSocial}}</span>
+                            </ng-template>
+                        </p-select>
+            
                         <p-select [options]="sucursalesFilterOptions" 
                                     [(ngModel)]="selectedSucursal" 
                                     optionLabel="nombre" 
                                     optionValue="id"
-                                    [showClear]="true"
                                     (onChange)="refreshTable()"
                                     placeholder="Todas las sucursales"
-                                    [disabled]="isSuperAdmin && !selectedEmpresa"> 
+                                    [disabled]="isSuperAdmin && !selectedEmpresa"
+                                    [style]="{'min-width': '200px'}">
+                            <ng-template let-opcion pTemplate="selectedItem">
+                                <span>{{opcion.nombre}}</span>
+                            </ng-template>
                         </p-select>
+            
+                        <button pButton pRipple icon="pi pi-filter-slash" 
+                                class="p-button-outlined p-button-secondary" 
+                                pTooltip="Limpiar Filtros"
+                                tooltipPosition="top"
+                                (click)="clearFilters()">
+                        </button>
+            
+                        <button pButton pRipple icon="pi pi-refresh" 
+                                class="p-button-outlined p-button-help" 
+                                pTooltip="Refrescar Tabla"
+                                tooltipPosition="top"
+                                (click)="refreshTable()">
+                        </button>
+                        
                     </div>
-
-                    <div class="field col-12 md:col-2 flex align-items-end">
-                        <button pButton label="Limpiar Filtros" icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary" (click)="clearFilters()"></button>
-                    </div>
-                </div>
-            </div>
+                </ng-template>
+            </p-toolbar>
 
             <p-table #dt [value]="usuarios"
             [lazy]="true"

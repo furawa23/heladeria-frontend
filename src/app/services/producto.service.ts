@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../enviroment';
 import { ProductoRequest, ProductoResponse } from '../models/almacen.interface';
 import { Page } from '../models/seguridad.interface';
+import { SaborResponse } from '../models/sabor.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -57,6 +58,14 @@ export class ProductoService {
 
   eliminar(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  obtenerSaboresPermitidos(idProducto: number): Observable<SaborResponse[]> {
+    return this.http.get<SaborResponse[]>(`${this.apiUrl}/${idProducto}/sabores`);
+  }
+
+  asignarSabores(idProducto: number, idsSabores: number[]): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${idProducto}/sabores`, idsSabores);
   }
 
   private getParams(page: number, size: number, sort: string): HttpParams {
