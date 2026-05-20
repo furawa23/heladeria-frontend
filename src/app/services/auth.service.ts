@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { AuthResponse, UsuarioResponse } from '../models/seguridad.interface';
-import { environment } from '../enviroment';
+import { environment } from '../environments/enviroment';
 
 @Injectable({
   providedIn: 'root'

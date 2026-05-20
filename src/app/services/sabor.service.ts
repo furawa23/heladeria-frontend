@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../enviroment'; // Mantenemos la ruta de tu archivo de entorno
+import { environment } from '../environments/enviroment'; // Mantenemos la ruta de tu archivo de entorno
 import { SaborRequest, SaborResponse } from '../models/sabor.interface';
 import { Page } from '../models/seguridad.interface';
 

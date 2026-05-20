@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../enviroment';
+import { environment } from '../environments/enviroment';
 import { CajaRequest, CajaResponse } from '../models/caja.interface';
 import { Page } from '../models/seguridad.interface';
 
