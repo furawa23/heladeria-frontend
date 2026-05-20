@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // <-- AÑADIDO ChangeDetectorRef
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { RouterModule } from '@angular/router';
 import { AppConfigurator } from './app.configurator';
@@ -6,7 +6,6 @@ import { LayoutService } from '../service/layout.service';
 import { SucursalResponse } from '../../models/seguridad.interface';
 import { SharedModule } from '../../shared/shared.module';
 
-// Importamos tus servicios
 import { AuthService } from '../../services/auth.service';
 import { SucursalService } from '../../services/sucursal.service';
 
@@ -26,7 +25,8 @@ import { SucursalService } from '../../services/sucursal.service';
         </div>
 
         <div class="layout-topbar-actions">
-            <div class="flex align-items-center mr-3" *ngIf="!esEmpleado">
+            
+            <div class="flex align-items-center mr-3" *ngIf="esDueno">
                 <span class="hidden md:block font-bold mr-3 text-600">SUCURSAL ACTUAL:</span>
                 <p-select 
                     [options]="sucursales" 
@@ -39,10 +39,6 @@ import { SucursalService } from '../../services/sucursal.service';
                     [showClear]="true"
                     (onClear)="limpiarSucursal()">
                 </p-select>
-            </div>
-
-            <div class="flex align-items-center mr-3" *ngIf="esEmpleado">
-                 <p-tag severity="info" [value]="'Sucursal: ' + nombreSucursalEmpleado" icon="pi pi-map-marker"></p-tag>
             </div>
 
             <div class="layout-config-menu">
@@ -73,17 +69,16 @@ import { SucursalService } from '../../services/sucursal.service';
 export class AppTopbar implements OnInit {
     items!: MenuItem[];
     
-    // Lógica de sucursales
-    esEmpleado: boolean = false;
+    // Nueva lógica orientada solo al Dueño
+    esDueno: boolean = false;
     sucursales: SucursalResponse[] = [];
     sucursalSeleccionada: number | null = null;
-    nombreSucursalEmpleado: string = '';
 
     constructor(
         public layoutService: LayoutService,
         private authService: AuthService,         
         private sucursalService: SucursalService,
-        private cdr: ChangeDetectorRef            // <-- INYECTADO AQUÍ
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit() {
@@ -94,25 +89,24 @@ export class AppTopbar implements OnInit {
         const usuario = this.authService.getUser();
 
         if (usuario) {
-            this.esEmpleado = usuario.idSucursal != null;
+            // 👇 AQUÍ ES LA CLAVE 👇
+            // Debes reemplazar 'usuario.rol' por la propiedad real que uses en tu sistema
+            // y 'DUENO' por el string o ID exacto que identifica a ese rol.
+            this.esDueno = usuario.rol === 'DUENO'; 
 
-            if (this.esEmpleado) {
-                this.nombreSucursalEmpleado = usuario.nombreSucursal;
-            } else {
-                if (usuario.idEmpresa) {
-                    this.sucursalService.listarPorEmpresa(0, 100, usuario.idEmpresa).subscribe({
-                        next: (data) => {
-                            this.sucursales = data.content; 
-                            
-                            const savedId = localStorage.getItem('sucursalActiva');
-                            this.sucursalSeleccionada = savedId ? parseInt(savedId) : null;
+            // Solo llamamos al backend para listar sucursales si es el dueño
+            if (this.esDueno && usuario.idEmpresa) {
+                this.sucursalService.listarPorEmpresa(0, 100, usuario.idEmpresa).subscribe({
+                    next: (data) => {
+                        this.sucursales = data.content; 
+                        
+                        const savedId = localStorage.getItem('sucursalActiva');
+                        this.sucursalSeleccionada = savedId ? parseInt(savedId) : null;
 
-                            // <-- LÍNEA CLAVE: Obligamos a la interfaz a actualizarse con el valor recuperado
-                            this.cdr.detectChanges(); 
-                        },
-                        error: (err) => console.error('Error cargando sucursales para el topbar', err)
-                    });
-                }
+                        this.cdr.detectChanges(); 
+                    },
+                    error: (err) => console.error('Error cargando sucursales para el topbar', err)
+                });
             }
         }
     }

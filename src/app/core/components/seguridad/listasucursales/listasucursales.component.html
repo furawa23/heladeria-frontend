@@ -65,27 +65,6 @@
                 </ng-template>
             </p-toolbar>
 
-            <div class="card mb-3 p-fluid" *ngIf="isSuperAdmin">
-                <h5>Filtros de Búsqueda</h5>
-                <div class="formgrid grid">
-                    
-                    <div class="field col-12 md:col-6">
-                        <label for="filtroEmpresa">Filtrar por Empresa</label>
-                        <p-select [options]="empresasFilterOptions" 
-                                    [(ngModel)]="selectedEmpresa" 
-                                    optionLabel="razonSocial" 
-                                    optionValue="id"
-                                    [showClear]="true"
-                                    (onChange)="onEmpresaFilterChange()"
-                                    placeholder="Todas las empresas"></p-select>
-                    </div>
-
-                    <div class="field col-12 md:col-2 flex align-items-end">
-                        <button pButton label="Limpiar" icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary" (click)="clearFilters()"></button>
-                    </div>
-                </div>
-            </div>
-
             <p-table #dt [value]="sucursales"
             [lazy]="true"
             (onLazyLoad)="loadSucursales($event)"

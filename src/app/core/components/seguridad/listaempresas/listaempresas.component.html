@@ -12,7 +12,20 @@
             <p-toolbar styleClass="mb-4">
                 <ng-template pTemplate="left">
                     <div class="my-2">
-                        <button pButton pRipple label="New" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                        <button pButton pRipple label="Nueva Empresa" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                    </div>
+                </ng-template>
+                
+                <ng-template pTemplate="right">
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                        
+                        <button pButton pRipple icon="pi pi-refresh" 
+                                class="p-button-outlined p-button-help" 
+                                pTooltip="Refrescar Tabla"
+                                tooltipPosition="top"
+                                (click)="refreshTable()">
+                        </button>
+                        
                     </div>
                 </ng-template>
             </p-toolbar>

@@ -8,6 +8,7 @@ import {
   VentaResponse, VentaRequest, MesaResponse, CobrarVentaRequest, PagoVentaRequest
 } from '../../../../models/venta.interface';
 import { ProductoResponse, PresentacionProdResponse } from '../../../../models/almacen.interface';
+import { SaborResponse } from '../../../../models/sabor.interface'; // <-- IMPORTANTE AÑADIR ESTO
 import { VentaService } from '../../../../services/venta.service';
 import { MesaService } from '../../../../services/mesa.service';
 import { ProductoService } from '../../../../services/producto.service'; 
@@ -26,10 +27,8 @@ export class ListaVentas implements OnInit {
 
   @ViewChild('dt') dt!: Table;
 
-  // --- NUEVA BANDERA ---
   faltaSucursal: boolean = false;
 
-  // --- FILTROS DE MESAS ---
   opcionesEstadoMesa = [
     { label: 'Todas las Mesas', value: 'TODAS' },
     { label: 'Libres', value: 'LIBRES' },
@@ -38,7 +37,6 @@ export class ListaVentas implements OnInit {
   filtroEstadoMesa: string = 'TODAS';
   mesasFiltradas: MesaResponse[] = []; 
 
-  // --- FILTROS DE VENTAS ---
   opcionesEstadoVenta = [
     { label: 'Todas las Ventas', value: 'TODAS' },
     { label: 'Creadas', value: 'CREADA' },
@@ -47,25 +45,25 @@ export class ListaVentas implements OnInit {
   ];
   filtroEstadoVenta: string = 'TODAS';
 
-  // Listas de datos
   ventas: VentaResponse[] = [];
   mesas: MesaResponse[] = [];
   productos: ProductoResponse[] = [];             
   presentacionesFiltradas: PresentacionProdResponse[] = []; 
+  saboresDisponibles: SaborResponse[] = []; // <-- NUEVO: Lista de sabores del producto
 
-  // Variables de Venta actual
   venta!: VentaResponse;
   mesaSeleccionada: MesaResponse | null = null;
   esVentaRapida: boolean = false;
-  stockDisponible: number | null = null; // Control de stock visual
+  stockDisponible: number | null = null; 
 
-  // Diálogos
   ventaDialog: boolean = false;
   actionDialog: boolean = false;
   cobrarDialog: boolean = false; 
+  viewDialog: boolean = false; // <-- NUEVO: Modal de ver detalles
+  ventaSeleccionadaParaVer: VentaResponse | null = null; // <-- NUEVO
+
   actionType: 'CANCELAR' | 'ELIMINAR' = 'CANCELAR'; 
 
-  // Formularios
   form!: FormGroup;        
   detalleForm!: FormGroup; 
   pagoForm!: FormGroup; 
@@ -73,7 +71,6 @@ export class ListaVentas implements OnInit {
   detallesActuales: any[] = []; 
   pagosActuales: PagoVentaRequest[] = []; 
 
-  // Dropdown para métodos de pago
   metodosPago = [
     { label: 'Efectivo', value: 'EFECTIVO' },
     { label: 'Tarjeta', value: 'TARJETA' },
@@ -81,7 +78,6 @@ export class ListaVentas implements OnInit {
     { label: 'Plin', value: 'PLIN' }
   ];
 
-  // Tabla Ventas
   totalRecords: number = 0;
   loadingVentas: boolean = true;
   rows: number = 10;
@@ -121,6 +117,7 @@ export class ListaVentas implements OnInit {
     this.detalleForm = this.fb.group({
       producto: [null, Validators.required], 
       presentacion: [null], 
+      sabores: [[]], // <-- NUEVO: Campo para sabores (array vacío)
       cantidad: [1, [Validators.required, Validators.min(1)]]
     });
 
@@ -130,9 +127,6 @@ export class ListaVentas implements OnInit {
     });
   }
 
-  // ==========================================
-  // LÓGICA DE MESAS
-  // ==========================================
   loadMesas() {
     this.mesaService.listarTodas(0, 100, 'numero,asc').subscribe({
       next: (data) => {
@@ -153,40 +147,22 @@ export class ListaVentas implements OnInit {
     }
   }
 
-  onFiltroMesaChange() {
-    this.aplicarFiltroMesas();
-  }
+  onFiltroMesaChange() { this.aplicarFiltroMesas(); }
+  clearFiltroMesa() { this.filtroEstadoMesa = 'TODAS'; this.aplicarFiltroMesas(); }
+  refreshMesas() { this.loadMesas(); }
 
-  clearFiltroMesa() {
-    this.filtroEstadoMesa = 'TODAS';
-    this.aplicarFiltroMesas();
-  }
-
-  refreshMesas() {
-    this.loadMesas();
-  }
-
-  // ==========================================
-  // LÓGICA DE VENTAS
-  // ==========================================
   loadVentas(event: any) {
     this.loadingVentas = true;
     const page = (event?.first ?? 0) / (event?.rows ?? this.rows);
     const size = event?.rows ?? this.rows;
-    
-    let sortStr = '';
-    if (event && event.sortField) {
-        sortStr = `${event.sortField},${event.sortOrder === 1 ? 'asc' : 'desc'}`;
-    }
+    let sortStr = event && event.sortField ? `${event.sortField},${event.sortOrder === 1 ? 'asc' : 'desc'}` : '';
   
     this.ventaService.listarTodas(page, size, sortStr).subscribe({
       next: (data) => {
         let resultados = data.content;
-        
         if (this.filtroEstadoVenta !== 'TODAS') {
             resultados = resultados.filter((v: VentaResponse) => v.estado === this.filtroEstadoVenta);
         }
-
         this.ventas = resultados;
         this.totalRecords = this.filtroEstadoVenta !== 'TODAS' ? resultados.length : data.totalElements;
         this.loadingVentas = false;
@@ -196,45 +172,36 @@ export class ListaVentas implements OnInit {
     });
   }
 
-  onFiltroVentaChange() {
-    this.refreshVentas();
-  }
-
-  clearFiltroVenta() {
-    this.filtroEstadoVenta = 'TODAS';
-    this.refreshVentas();
-  }
-
+  onFiltroVentaChange() { this.refreshVentas(); }
+  clearFiltroVenta() { this.filtroEstadoVenta = 'TODAS'; this.refreshVentas(); }
   refreshVentas() {
-    if (this.dt) {
-      this.dt.reset();
-    } else {
-      this.loadVentas({ first: 0, rows: this.rows });
-    }
+    if (this.dt) this.dt.reset();
+    else this.loadVentas({ first: 0, rows: this.rows });
   }
 
   loadProductos() {
     this.productoService.listarDisponiblesParaVenta().subscribe({
-      next: (data) => {
-        this.productos = data;
-        this.cdr.detectChanges(); 
-      },
-      error: () => {
-        this.messageService.add({severity:'error', summary:'Error', detail:'Error al cargar productos'});
-        this.cdr.detectChanges(); 
-      }
+      next: (data) => { this.productos = data; this.cdr.detectChanges(); },
+      error: () => { this.messageService.add({severity:'error', summary:'Error', detail:'Error al cargar productos'}); }
     });
   }
 
   onProductoChange(event: any) {
     const prod: ProductoResponse = event.value; 
     this.presentacionesFiltradas = [];
-    this.detalleForm.patchValue({ presentacion: null, cantidad: 1 });
+    this.saboresDisponibles = []; // <-- Limpiamos sabores
+    this.detalleForm.patchValue({ presentacion: null, sabores: [], cantidad: 1 });
 
     if (prod) {
         this.presentacionService.listarPorProducto(prod.id, 0, 100).subscribe({
             next: (data) => this.presentacionesFiltradas = data.content
         });
+
+        // <-- NUEVO: Obtener los sabores permitidos para este producto
+        this.productoService.obtenerSaboresPermitidos(prod.id).subscribe({
+            next: (data) => this.saboresDisponibles = data
+        });
+
         this.actualizarValidadorCantidad(prod, null);
     } else {
         this.stockDisponible = null;
@@ -252,19 +219,12 @@ export class ListaVentas implements OnInit {
 
   actualizarValidadorCantidad(prod: ProductoResponse, pres: any) {
     if (!prod) return;
-
     let maxStockBase = prod.stock || 0; 
     let factor = pres ? pres.factor : 1;
-    
     this.stockDisponible = Math.floor(maxStockBase / factor);
 
     const cantidadCtrl = this.detalleForm.get('cantidad');
-    cantidadCtrl?.setValidators([
-        Validators.required, 
-        Validators.min(1), 
-        Validators.max(this.stockDisponible) 
-    ]);
-    
+    cantidadCtrl?.setValidators([Validators.required, Validators.min(1), Validators.max(this.stockDisponible)]);
     cantidadCtrl?.updateValueAndValidity(); 
   }
 
@@ -274,8 +234,13 @@ export class ListaVentas implements OnInit {
     const val = this.detalleForm.value;
     const prod = val.producto; 
     const pres = val.presentacion; 
+    const saboresSeleccionados: SaborResponse[] = val.sabores || []; // <-- NUEVO
 
-    const precioAplicar = pres ? pres.precioVenta : prod.precioUnitarioVenta;
+    // Calculamos el recargo total por los sabores
+    const recargoSabores = saboresSeleccionados.reduce((acc, s) => acc + s.precioAdicional, 0);
+    const precioBase = pres ? pres.precioVenta : prod.precioUnitarioVenta;
+    const precioAplicar = precioBase + recargoSabores; // Precio Base + Sabores
+
     const cantidadARestar = val.cantidad * (pres ? pres.factor : 1);
 
     const nuevoDetalle = {
@@ -286,45 +251,38 @@ export class ListaVentas implements OnInit {
       cantidad: val.cantidad,
       precioUnitario: precioAplicar,
       subtotal: val.cantidad * precioAplicar,
-      cantidadRestadaMemoria: cantidadARestar // Guardamos esto por si lo elimina
+      cantidadRestadaMemoria: cantidadARestar,
+      // Guardamos IDs para el backend y nombres para la vista temporal
+      idsSabores: saboresSeleccionados.map(s => s.id), 
+      nombresSabores: saboresSeleccionados.map(s => s.nombre) 
     };
 
     this.detallesActuales.push(nuevoDetalle);
-    
-    // REDUCCIÓN EN MEMORIA
-    if (prod) {
-        prod.stock -= cantidadARestar;
-    }
+    if (prod) prod.stock -= cantidadARestar;
 
-    this.detalleForm.reset({ cantidad: 1 });
+    this.detalleForm.reset({ cantidad: 1, sabores: [] });
     this.presentacionesFiltradas = []; 
+    this.saboresDisponibles = [];
     this.stockDisponible = null;
   }
 
   eliminarDetalle(index: number) {
     const detalle = this.detallesActuales[index];
-    
-    // Devolver el stock en memoria al producto original
     const prodOriginal = this.productos.find(p => p.id === detalle.idProducto);
     if (prodOriginal && detalle.cantidadRestadaMemoria) {
         prodOriginal.stock += detalle.cantidadRestadaMemoria;
     }
-
     this.detallesActuales.splice(index, 1);
-
-    // Re-evaluar el validador por si el usuario está viendo el mismo producto
+    
     const prodActualForm = this.detalleForm.get('producto')?.value;
     const presActualForm = this.detalleForm.get('presentacion')?.value;
-    if (prodActualForm) {
-        this.actualizarValidadorCantidad(prodActualForm, presActualForm);
-    }
+    if (prodActualForm) this.actualizarValidadorCantidad(prodActualForm, presActualForm);
   }
 
   calcularTotalVenta(): number {
     return this.detallesActuales.reduce((acc, item) => acc + item.subtotal, 0);
   }
 
-  // --- FLUJO DE CREACIÓN DE VENTAS ---
   openVentaRapida() {
     this.esVentaRapida = true;
     this.mesaSeleccionada = null;
@@ -345,9 +303,9 @@ export class ListaVentas implements OnInit {
     this.venta = {} as VentaResponse;
     this.detallesActuales = []; 
     this.form.reset({ estado: 'CREADA' });
-    this.detalleForm.reset({ cantidad: 1 });
+    this.detalleForm.reset({ cantidad: 1, sabores: [] });
     this.ventaDialog = true;
-    this.stockDisponible = null; // Reiniciar visual
+    this.stockDisponible = null; 
   }
 
   editVenta(venta: VentaResponse) {
@@ -368,7 +326,8 @@ export class ListaVentas implements OnInit {
     this.detallesActuales = venta.detalles.map(d => ({
       ...d,
       nombrePresentacion: d.nombrePresentacion || '-',
-      cantidadRestadaMemoria: 0 // Si edita, no afectamos en memoria lo que ya viene guardado
+      cantidadRestadaMemoria: 0,
+      nombresSabores: d.sabores || [] // Cargar nombres de sabores desde el backend si existen
     }));
 
     this.stockDisponible = null;
@@ -390,7 +349,8 @@ export class ListaVentas implements OnInit {
         idProducto: d.idProducto,
         idPresentacion: d.idPresentacion,
         cantidad: d.cantidad,
-        precioUnitario: d.precioUnitario
+        precioUnitario: d.precioUnitario,
+        idsSabores: d.idsSabores // <-- Enviamos los IDs de los sabores al backend
       }))
     };
 
@@ -403,9 +363,7 @@ export class ListaVentas implements OnInit {
     } else {
       this.ventaService.crear(request).subscribe({
         next: () => {
-          const mensaje = this.esVentaRapida 
-            ? 'Venta Rápida registrada' 
-            : `Venta en Mesa ${this.mesaSeleccionada?.numero} registrada`;
+          const mensaje = this.esVentaRapida ? 'Venta Rápida registrada' : `Venta en Mesa ${this.mesaSeleccionada?.numero} registrada`;
           this.finalizarGuardado(mensaje);
         },
         error: () => this.messageService.add({severity:'error', summary:'Error', detail:'Error al crear la venta'})
@@ -418,15 +376,12 @@ export class ListaVentas implements OnInit {
     this.ventaDialog = false;
     this.loadVentas(null);
     this.loadMesas(); 
-    this.loadProductos(); // Recargar productos para restaurar el stock real de BD
+    this.loadProductos(); 
   }
-
-  // --- NUEVA LÓGICA DE COBROS ---
 
   openCobrarDialog(venta: VentaResponse) {
     this.venta = { ...venta };
     this.pagosActuales = [];
-    
     this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: venta.total });
     this.cobrarDialog = true;
   }
@@ -441,13 +396,9 @@ export class ListaVentas implements OnInit {
     }
 
     this.pagosActuales.push({ metodoPago: pago.metodoPago, monto: pago.monto });
-    
     const restante = this.montoRestante;
-    if (restante > 0) {
-        this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: restante });
-    } else {
-        this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: 0 });
-    }
+    if (restante > 0) this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: restante });
+    else this.pagoForm.reset({ metodoPago: 'EFECTIVO', monto: 0 });
   }
 
   eliminarPago(index: number) {
@@ -455,14 +406,9 @@ export class ListaVentas implements OnInit {
     this.pagoForm.patchValue({ monto: this.montoRestante });
   }
 
-  get totalPagado(): number {
-    return this.pagosActuales.reduce((sum, p) => sum + p.monto, 0);
-  }
-
+  get totalPagado(): number { return this.pagosActuales.reduce((sum, p) => sum + p.monto, 0); }
   get montoRestante(): number {
-    if (!this.venta || !this.venta.total) {
-        return 0;
-    }
+    if (!this.venta || !this.venta.total) return 0;
     const restante = this.venta.total - this.totalPagado;
     return restante > 0 ? restante : 0;
   }
@@ -472,11 +418,7 @@ export class ListaVentas implements OnInit {
         this.messageService.add({severity:'error', summary:'Error de Cuadre', detail:`Los pagos no coinciden con el total (S/ ${this.venta.total})`});
         return;
     }
-
-    const payload: CobrarVentaRequest = {
-        pagos: this.pagosActuales 
-    };
-
+    const payload: CobrarVentaRequest = { pagos: this.pagosActuales };
     this.ventaService.cobrar(this.venta.id, payload).subscribe({
         next: () => {
             this.messageService.add({severity:'success', summary:'Cobrado', detail:'Venta cobrada e ingresada a caja con éxito'});
@@ -484,13 +426,15 @@ export class ListaVentas implements OnInit {
             this.loadVentas(null);
             this.loadMesas();
         },
-        error: (err) => {
-            this.messageService.add({severity:'error', summary:'Error', detail: err.error?.message || 'No se pudo cobrar la venta'});
-        }
+        error: (err) => this.messageService.add({severity:'error', summary:'Error', detail: err.error?.message || 'No se pudo cobrar la venta'})
     });
   }
 
-  // --- ACCIONES SECUNDARIAS (Cancelar / Eliminar) ---
+  // --- NUEVO: Ver Detalles de Venta ---
+  openViewDialog(venta: VentaResponse) {
+    this.ventaSeleccionadaParaVer = { ...venta };
+    this.viewDialog = true;
+  }
 
   openActionDialog(venta: VentaResponse, accion: 'CANCELAR' | 'ELIMINAR') {
     this.venta = { ...venta };
@@ -500,7 +444,6 @@ export class ListaVentas implements OnInit {
 
   confirmAction() {
     this.actionDialog = false;
-    
     let obs$;
     if (this.actionType === 'CANCELAR') obs$ = this.ventaService.cancelar(this.venta.id);
     else obs$ = this.ventaService.eliminar(this.venta.id);
@@ -510,7 +453,7 @@ export class ListaVentas implements OnInit {
         this.messageService.add({severity:'success', summary:'Procesado', detail:`Venta ${this.actionType.toLowerCase()}a con éxito`});
         this.loadVentas(null);
         this.loadMesas(); 
-        this.loadProductos(); // Recargar productos para restaurar stock en la vista
+        this.loadProductos(); 
       },
       error: () => this.messageService.add({severity:'error', summary:'Error', detail:`Fallo al ${this.actionType.toLowerCase()}`})
     });
