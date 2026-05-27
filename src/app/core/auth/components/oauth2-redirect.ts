@@ -27,11 +27,15 @@ ngOnInit() {
 this.authService.saveOAuth2Token(token).subscribe({
   next: (user) => {
     
-    // CORRECCIÓN AQUÍ: Usamos idEmpresa e idSucursal, y excluimos al SUPERADMIN
-    if (user.rol !== 'SUPERADMIN' && (!user.idEmpresa || !user.idSucursal)) {
+    // 1. Separamos las reglas de negocio por rol
+    const isEmpleadoIncompleto = user.rol === 'EMPLEADO' && (!user.idEmpresa || !user.idSucursal);
+    const isDuenoIncompleto = user.rol === 'DUENO' && !user.idEmpresa;
+
+    // 2. Si cumple alguna de las condiciones de datos faltantes, va a la sala de espera
+    if (isEmpleadoIncompleto || isDuenoIncompleto) {
       this.router.navigate(['/auth/solicitar']);
     } else {
-      // Si tiene todo correcto (o es Superadmin), va a la raíz
+      // Superadmin, o Dueños/Empleados con sus datos completos van a la raíz
       this.router.navigate(['/']);
     }
     
