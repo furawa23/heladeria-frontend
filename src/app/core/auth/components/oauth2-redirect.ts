@@ -16,16 +16,38 @@ export class Oauth2RedirectComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
 
-ngOnInit() {
+  ngOnInit() {
     this.route.queryParams.subscribe(params => {
       const token = params['token'];
+      const error = params['error'];
 
       if (token) {
-        // FORZAMOS EL COMPORTAMIENTO ANTIGUO
-        localStorage.setItem('token', token);
-        this.router.navigate(['/']);
+        // Nos suscribimos y esperamos a que el usuario se guarde correctamente
+        this.authService.saveOAuth2Token(token).subscribe({
+          next: (user) => {
+            
+            // Validamos los roles y los campos para mandarlo a solicitar acceso
+            const isEmpleadoIncompleto = user.rol === 'EMPLEADO' && (!user.idEmpresa || !user.idSucursal);
+            const isDuenoIncompleto = user.rol === 'DUENO' && !user.idEmpresa;
+
+            if (isEmpleadoIncompleto || isDuenoIncompleto) {
+              this.router.navigate(['/auth/solicitar']);
+            } else {
+              this.router.navigate(['/']); // Todo en orden, va al sistema
+            }
+            
+          },
+          error: (err) => {
+            console.error('Error obteniendo datos del usuario de Google', err);
+            this.router.navigate(['/auth/login'], { 
+              queryParams: { error: 'fetch_user_failed' } 
+            });
+          }
+        });
       } else {
-        this.router.navigate(['/auth/login']);
+        this.router.navigate(['/auth/login'], { 
+          queryParams: { error: error || 'google_auth_failed' } 
+        });
       }
     });
   }

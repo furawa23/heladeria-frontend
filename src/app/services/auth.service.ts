@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
@@ -15,8 +15,9 @@ export class AuthService {
   // URL de tu Backend (Asegúrate de que coincida con tu puerto de Spring)
   private apiUrl = `${environment.apiUrl}/auth`; 
 
-  private fetchCurrentUser(): Observable<UsuarioResponse> {
-    return this.http.get<UsuarioResponse>(`${this.apiUrl}/me`); 
+  private fetchCurrentUser(token: string): Observable<UsuarioResponse> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    return this.http.get<UsuarioResponse>(`${this.apiUrl}/me`, { headers }); 
   }
 
   login(username: string, password: string): Observable<AuthResponse> {
@@ -70,9 +71,9 @@ export class AuthService {
   saveOAuth2Token(token: string): Observable<UsuarioResponse> {
     localStorage.setItem('token', token);
     
-    // Retornamos el Observable para que el componente espere a que termine
-    return this.fetchCurrentUser().pipe(
+    return this.fetchCurrentUser(token).pipe(
       tap(user => {
+        // Ahora sí, guardamos al usuario para que los Guards lo puedan leer
         localStorage.setItem('user', JSON.stringify(user));
       })
     );
