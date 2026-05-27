@@ -23,22 +23,26 @@ ngOnInit() {
 
       if (token) {
         // Nos suscribimos y esperamos a que el usuario se guarde en localStorage
-        this.authService.saveOAuth2Token(token).subscribe({
-          next: (user) => {
-            // NOTA: Reemplaza 'empresa' y 'sucursal' por los nombres exactos de tus campos en UsuarioResponse
-            if (user.idEmpresa === null || user.idSucursal === null) {
-              this.router.navigate(['/auth/solicitar']);
-            } else {
-              this.router.navigate(['/']);
-            }
-          },
-          error: (err) => {
-            console.error('Error obteniendo datos del usuario de Google', err);
-            this.router.navigate(['/auth/login'], { 
-              queryParams: { error: 'fetch_user_failed' } 
-            });
-          }
-        });
+// Dentro de tu ngOnInit()
+this.authService.saveOAuth2Token(token).subscribe({
+  next: (user) => {
+    
+    // CORRECCIÓN AQUÍ: Usamos idEmpresa e idSucursal, y excluimos al SUPERADMIN
+    if (user.rol !== 'SUPERADMIN' && (!user.idEmpresa || !user.idSucursal)) {
+      this.router.navigate(['/auth/solicitar']);
+    } else {
+      // Si tiene todo correcto (o es Superadmin), va a la raíz
+      this.router.navigate(['/']);
+    }
+    
+  },
+  error: (err) => {
+    console.error('Error obteniendo datos del usuario de Google', err);
+    this.router.navigate(['/auth/login'], { 
+      queryParams: { error: 'fetch_user_failed' } 
+    });
+  }
+});
       } else {
         this.router.navigate(['/auth/login'], { 
           queryParams: { error: error || 'google_auth_failed' } 

@@ -16,7 +16,7 @@ export const roleGuard: CanActivateFn = (route, state) => {
   // --- NUEVA VALIDACIÓN PARA USUARIOS DE GOOGLE SIN CONFIGURAR ---
   const user = authService.getUser();
   // NOTA: Usa los mismos nombres de campos que usaste en el redirect
-  if (user && (user.idEmpresa === null || user.idSucursal === null)) {
+  if (user && user.rol !== 'SUPERADMIN' && (!user.idEmpresa || !user.idSucursal)) {
     router.navigate(['/auth/solicitar']);
     return false;
   }
