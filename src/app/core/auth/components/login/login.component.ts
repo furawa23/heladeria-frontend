@@ -41,8 +41,15 @@ export class Login {
         this.authService.login(this.username, this.password).subscribe({
             next: (resp) => {
                 this.isLoading = false;
-                // Si el login es exitoso, redirigimos al dashboard (ruta raíz)
-                this.router.navigate(['/']); 
+                
+                // REDIRECCIÓN DINÁMICA SEGÚN EL ROL
+                const userRole = resp.usuario?.rol; // Asegúrate de que coincida con cómo viene en tu interfaz
+
+                if (userRole === 'SUPERADMIN') {
+                    this.router.navigate(['/empresas']);
+                } else {
+                    this.router.navigate(['/']); // Empleados y dueños van a la raíz (productos)
+                }
             },
             error: (err) => {
                 this.isLoading = false;
@@ -51,7 +58,7 @@ export class Login {
                     summary: 'Error', 
                     detail: 'Credenciales incorrectas o servidor no disponible' 
                 });
-                console.error('Login error:', err);
+                console.error(err);
             }
         });
     }

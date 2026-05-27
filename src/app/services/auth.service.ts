@@ -67,16 +67,15 @@ export class AuthService {
     window.location.href = `${backendUrl}/oauth2/authorization/google`;
   }
 
-  saveOAuth2Token(token: string) {
+  saveOAuth2Token(token: string): Observable<UsuarioResponse> {
     localStorage.setItem('token', token);
     
-    // IMPORTANTE: Como los guards dependen del objeto 'user' en localStorage,
-    // deberías llamar a un endpoint de tu backend que te devuelva los datos
-    // del usuario actual usando el nuevo token.
-    this.fetchCurrentUser().subscribe({
-      next: (user) => localStorage.setItem('user', JSON.stringify(user)),
-      error: (err) => console.error('Error obteniendo datos del usuario', err)
-    });
+    // Retornamos el Observable para que el componente espere a que termine
+    return this.fetchCurrentUser().pipe(
+      tap(user => {
+        localStorage.setItem('user', JSON.stringify(user));
+      })
+    );
   }
 
 }

@@ -16,6 +16,7 @@ import { roleGuard } from './core/auth/guards/role.guard';
 import { Access } from './core/auth/components/access';
 import { ListaSabores } from './core/components/sabor/listasabores/listasabores.component';
 import { Oauth2RedirectComponent } from './core/auth/components/oauth2-redirect';
+import { RequestAccessComponent } from './core/auth/components/request-access';
 
 export const routes: Routes = [
     // 1. RUTA PÚBLICA (Login)
@@ -31,6 +32,10 @@ export const routes: Routes = [
     {
         path: 'auth/prohibido',
         component: Access
+    },
+    {
+        path: 'auth/solicitar',
+        component: RequestAccessComponent
     },
 
     // 2. RUTAS PRIVADAS (Protegidas por el Guard)
