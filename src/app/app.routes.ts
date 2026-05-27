@@ -15,6 +15,7 @@ import { CajaComponent } from './core/components/caja/caja.component';
 import { roleGuard } from './core/auth/guards/role.guard';
 import { Access } from './core/auth/components/access';
 import { ListaSabores } from './core/components/sabor/listasabores/listasabores.component';
+import { Oauth2RedirectComponent } from './core/auth/components/oauth2-redirect';
 
 export const routes: Routes = [
     // 1. RUTA PÚBLICA (Login)
@@ -22,6 +23,10 @@ export const routes: Routes = [
     {
         path: 'auth/login',
         component: Login
+    },
+{
+        path: 'auth/callback',
+        component: Oauth2RedirectComponent
     },
     {
         path: 'auth/prohibido',

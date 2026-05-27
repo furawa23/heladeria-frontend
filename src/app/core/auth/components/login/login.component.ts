@@ -25,6 +25,11 @@ export class Login {
     checked: boolean = false;
     isLoading: boolean = false; // Para efecto visual en el botón
 
+    onGoogleLogin() {
+        this.isLoading = true;
+        this.authService.loginWithGoogle();
+    }
+    
     onLogin() {
         if (!this.username || !this.password) {
             this.messageService.add({ severity: 'warn', summary: 'Atención', detail: 'Ingresa usuario y contraseña' });

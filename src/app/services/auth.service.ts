@@ -15,6 +15,10 @@ export class AuthService {
   // URL de tu Backend (Asegúrate de que coincida con tu puerto de Spring)
   private apiUrl = `${environment.apiUrl}/auth`; 
 
+  private fetchCurrentUser(): Observable<UsuarioResponse> {
+    return this.http.get<UsuarioResponse>(`${this.apiUrl}/me`); 
+  }
+
   login(username: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, { username, password }).pipe(
       tap(response => {
@@ -55,4 +59,24 @@ export class AuthService {
     const user = this.getUser();
     return user ? roles.includes(user.rol) : false;
   }
+
+  loginWithGoogle() {
+    // Asegúrate de que esta URL apunte a la raíz de tu backend, no a /api
+    // Si environment.apiUrl es 'http://localhost:8080/api', ajusta la cadena:
+    const backendUrl = environment.apiUrl.replace('/api', ''); 
+    window.location.href = `${backendUrl}/oauth2/authorization/google`;
+  }
+
+  saveOAuth2Token(token: string) {
+    localStorage.setItem('token', token);
+    
+    // IMPORTANTE: Como los guards dependen del objeto 'user' en localStorage,
+    // deberías llamar a un endpoint de tu backend que te devuelva los datos
+    // del usuario actual usando el nuevo token.
+    this.fetchCurrentUser().subscribe({
+      next: (user) => localStorage.setItem('user', JSON.stringify(user)),
+      error: (err) => console.error('Error obteniendo datos del usuario', err)
+    });
+  }
+
 }
