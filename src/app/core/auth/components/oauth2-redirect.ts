@@ -19,38 +19,13 @@ export class Oauth2RedirectComponent implements OnInit {
 ngOnInit() {
     this.route.queryParams.subscribe(params => {
       const token = params['token'];
-      const error = params['error'];
 
       if (token) {
-        // Nos suscribimos y esperamos a que el usuario se guarde en localStorage
-// Dentro de tu ngOnInit()
-this.authService.saveOAuth2Token(token).subscribe({
-  next: (user) => {
-    
-    // 1. Separamos las reglas de negocio por rol
-    const isEmpleadoIncompleto = user.rol === 'EMPLEADO' && (!user.idEmpresa || !user.idSucursal);
-    const isDuenoIncompleto = user.rol === 'DUENO' && !user.idEmpresa;
-
-    // 2. Si cumple alguna de las condiciones de datos faltantes, va a la sala de espera
-    if (isEmpleadoIncompleto || isDuenoIncompleto) {
-      this.router.navigate(['/auth/solicitar']);
-    } else {
-      // Superadmin, o Dueños/Empleados con sus datos completos van a la raíz
-      this.router.navigate(['/']);
-    }
-    
-  },
-  error: (err) => {
-    console.error('Error obteniendo datos del usuario de Google', err);
-    this.router.navigate(['/auth/login'], { 
-      queryParams: { error: 'fetch_user_failed' } 
-    });
-  }
-});
+        // FORZAMOS EL COMPORTAMIENTO ANTIGUO
+        localStorage.setItem('token', token);
+        this.router.navigate(['/']);
       } else {
-        this.router.navigate(['/auth/login'], { 
-          queryParams: { error: error || 'google_auth_failed' } 
-        });
+        this.router.navigate(['/auth/login']);
       }
     });
   }
