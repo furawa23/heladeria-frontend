@@ -23,27 +23,33 @@ export class Oauth2RedirectComponent implements OnInit {
 
       if (token) {
         // Nos suscribimos y esperamos a que el usuario se guarde correctamente
-        this.authService.saveOAuth2Token(token).subscribe({
-          next: (user) => {
-            
-            // Validamos los roles y los campos para mandarlo a solicitar acceso
-            const isEmpleadoIncompleto = user.rol === 'EMPLEADO' && (!user.idEmpresa || !user.idSucursal);
-            const isDuenoIncompleto = user.rol === 'DUENO' && !user.idEmpresa;
+      this.authService.saveOAuth2Token(token).subscribe({
+        next: (user) => {
+          
+          // 1. Validaciones de cuentas incompletas
+          const isEmpleadoIncompleto = user.rol === 'EMPLEADO' && (!user.idEmpresa || !user.idSucursal);
+          const isDuenoIncompleto = user.rol === 'DUENO' && !user.idEmpresa;
 
-            if (isEmpleadoIncompleto || isDuenoIncompleto) {
-              this.router.navigate(['/auth/solicitar']);
-            } else {
-              this.router.navigate(['/']); // Todo en orden, va al sistema
-            }
-            
-          },
-          error: (err) => {
-            console.error('Error obteniendo datos del usuario de Google', err);
-            this.router.navigate(['/auth/login'], { 
-              queryParams: { error: 'fetch_user_failed' } 
-            });
+          if (isEmpleadoIncompleto || isDuenoIncompleto) {
+            this.router.navigate(['/auth/solicitar']);
+          } 
+          // 2. REDIRECCIÓN EXPLÍCITA PARA EL SUPERADMIN
+          else if (user.rol === 'SUPERADMIN') {
+            this.router.navigate(['/empresas']);
+          } 
+          // 3. Dueños y empleados activos van a la raíz (productos)
+          else {
+            this.router.navigate(['/']);
           }
-        });
+          
+        },
+        error: (err) => {
+          console.error('Error obteniendo datos del usuario de Google', err);
+          this.router.navigate(['/auth/login'], { 
+            queryParams: { error: 'fetch_user_failed' } 
+          });
+        }
+      });
       } else {
         this.router.navigate(['/auth/login'], { 
           queryParams: { error: error || 'google_auth_failed' } 
