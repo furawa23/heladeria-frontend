@@ -15,6 +15,14 @@ export class AuthService {
   // URL de tu Backend (Asegúrate de que coincida con tu puerto de Spring)
   private apiUrl = `${environment.apiUrl}/auth`; 
 
+  private heartbeatInterval: any;
+
+  constructor() {
+    if (this.isLoggedIn()) {
+      this.startHeartbeat();
+    }
+  }
+
   private fetchCurrentUser(token: string): Observable<UsuarioResponse> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
     return this.http.get<UsuarioResponse>(`${this.apiUrl}/me`, { headers }); 
@@ -26,11 +34,22 @@ export class AuthService {
         // Guardamos el token y el usuario en el navegador
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.usuario));
+        this.startHeartbeat();
       })
     );
   }
 
   logout() {
+    const token = this.getToken();
+    if (token) {
+      this.http.post(`${this.apiUrl}/logout`, {}, {
+        headers: new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      }).subscribe({
+        next: () => {},
+        error: (err) => console.error('Error logging out from backend', err)
+      });
+    }
+    this.stopHeartbeat();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     this.router.navigate(['/auth/login']); // Ajusta la ruta a tu login
@@ -75,8 +94,37 @@ export class AuthService {
       tap(user => {
         // Ahora sí, guardamos al usuario para que los Guards lo puedan leer
         localStorage.setItem('user', JSON.stringify(user));
+        this.startHeartbeat();
       })
     );
   }
 
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    if (!this.isLoggedIn()) return;
+
+    // Ping cada 15 segundos para mantener viva la sesión
+    this.heartbeatInterval = setInterval(() => {
+      const token = this.getToken();
+      if (!token) {
+        this.stopHeartbeat();
+        return;
+      }
+      this.fetchCurrentUser(token).subscribe({
+        error: (err) => {
+          // Si la sesión fue invalidada (ej: 401 Unauthorized), deslogueamos en el frontend
+          if (err.status === 401 || err.status === 403) {
+            this.logout();
+          }
+        }
+      });
+    }, 15000);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
 }

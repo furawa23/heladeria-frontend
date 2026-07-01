@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://h-api.togamma.lat/api'
+  apiUrl: 'https://apihelado.togamma.lat/api'
 };

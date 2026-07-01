@@ -25,8 +25,7 @@ export class AppMenu implements OnInit {
             {
                 label: 'Inicio',
                 items: [
-                    // Apunta a la ruta raíz que en tu app.routes.ts redirige a 'empresas'
-                    { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }
                 ]
             },
             {

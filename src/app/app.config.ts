@@ -1,5 +1,5 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, UrlSerializer } from '@angular/router';
 import Aura from '@primeuix/themes/aura';
 
 import { routes } from './app.routes';
@@ -10,6 +10,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from './core/auth/interceptors/auth.interceptor';
+import { EncryptedUrlSerializer } from './core/utils/encrypted-url-serializer';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -29,6 +30,8 @@ export const appConfig: ApplicationConfig = {
                 darkModeSelector: '.app-dark'
             }
         }
-    })
+    }),
+
+    { provide: UrlSerializer, useClass: EncryptedUrlSerializer }
   ]
 };

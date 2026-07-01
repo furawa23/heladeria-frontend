@@ -17,6 +17,7 @@ import { Access } from './core/auth/components/access';
 import { ListaSabores } from './core/components/sabor/listasabores/listasabores.component';
 import { Oauth2RedirectComponent } from './core/auth/components/oauth2-redirect';
 import { RequestAccessComponent } from './core/auth/components/request-access';
+import { DashboardComponent } from './core/components/dashboard/dashboard.component';
 
 export const routes: Routes = [
     // 1. RUTA PÚBLICA (Login)
@@ -45,7 +46,14 @@ export const routes: Routes = [
         canActivate: [authGuard], // <--- AQUÍ ESTÁ EL CANDADO
         children: [
             // Redirigir '' a 'empresas' (o dashboard) por defecto
-            { path: '', redirectTo: 'productos', pathMatch: 'full' },
+            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+
+            {
+                path: 'dashboard',
+                component: DashboardComponent,
+                canActivate: [roleGuard],
+                data: { roles: ['SUPERADMIN', 'DUENO', 'EMPLEADO'] }
+            },
 
             {
                 path: 'empresas', 
