@@ -84,7 +84,7 @@ export class AuthService {
     // Asegúrate de que esta URL apunte a la raíz de tu backend, no a /api
     // Si environment.apiUrl es 'http://localhost:8080/api', ajusta la cadena:
     const backendUrl = environment.apiUrl.replace('/api', ''); 
-    window.location.href = `${backendUrl}/oauth2/authorization/google`;
+    window.location.href = 'https://apihelado.togamma.lat/oauth2/authorization/google';
   }
 
   saveOAuth2Token(token: string): Observable<UsuarioResponse> {
